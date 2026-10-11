@@ -9,10 +9,13 @@ import { UAParser } from 'ua-parser-js';
  * @param {string} referer - HTTP Referer header
  */
 export function parseClickTelemetry(ip, userAgent = '', referer = 'Direct') {
+  // Normalize client IP (handles comma-separated proxy header chains)
+  const cleanIp = typeof ip === 'string' ? ip.split(',')[0].trim() : (ip || '');
+
   // 1. Privacy: Hash the IP address using SHA-256
   // Never store raw IP addresses in your database!
-  const ipHash = ip
-    ? crypto.createHash('sha256').update(ip).digest('hex')
+  const ipHash = cleanIp
+    ? crypto.createHash('sha256').update(cleanIp).digest('hex')
     : 'unknown';
 
   // 2. Geo-Location Lookup via geoip-lite (offline lookup, sub-0.1ms)
