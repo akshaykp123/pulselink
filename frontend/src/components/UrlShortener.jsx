@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Check, ExternalLink, QrCode, Loader2, AlertCircle, X, Link as LinkIcon } from 'lucide-react';
 
-export default function UrlShortener({ onUrlCreated, activeCode, onSelectCode, recentCodes = [] }) {
+export default function UrlShortener({ onUrlCreated, activeCode, onSelectCode, recentCodes = [], apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5000' }) {
   const [originalUrl, setOriginalUrl] = useState('');
   const [customAlias, setCustomAlias] = useState('');
   const [createdUrl, setCreatedUrl] = useState(null);
@@ -18,7 +18,7 @@ export default function UrlShortener({ onUrlCreated, activeCode, onSelectCode, r
     setIsShortening(true);
     setError('');
     try {
-      const res = await fetch('http://localhost:5000/api/urls', {
+      const res = await fetch(`${apiBase}/api/urls`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ originalUrl, customAlias: customAlias.trim() || undefined }),

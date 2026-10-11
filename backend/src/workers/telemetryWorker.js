@@ -1,14 +1,14 @@
 import { Worker } from 'bullmq';
 import pool from '../config/db.js';
 import { parseClickTelemetry } from '../utils/telemetry.js';
+import Redis from 'ioredis';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const redisConnection = {
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-};
+const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  maxRetriesPerRequest: null,
+});
 
 // Create the background worker
 export const telemetryWorker = new Worker(

@@ -1,13 +1,14 @@
 import { Queue } from 'bullmq';
 import dotenv from 'dotenv';
 
+import Redis from 'ioredis';
+
 dotenv.config();
 
-// The connection settings pointing to our Redis container
-const redisConnection = {
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-};
+// The connection settings pointing to Redis (supports Cloud Redis URLs and local)
+const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  maxRetriesPerRequest: null,
+});
 
 // Create our BullMQ Telemetry Queue
 export const telemetryQueue = new Queue('telemetry-queue', {
