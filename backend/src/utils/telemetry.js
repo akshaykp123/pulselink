@@ -9,14 +9,16 @@ import { UAParser } from 'ua-parser-js';
  * @param {string} referer - HTTP Referer header
  */
 export function parseClickTelemetry(ip, userAgent = '', referer = 'Direct') {
-  // Normalize client IP (handles comma-separated proxy header chains)
-  const cleanIp = typeof ip === 'string' ? ip.split(',')[0].trim() : (ip || '');
+  // Normalize client IP & strip port
+  const rawClean = typeof ip === 'string' ? ip.split(',')[0].trim().replace(/(:\d+$)/, '') : (ip || '127.0.0.1');
+  const cleanIp = (rawClean === '::1' || rawClean.startsWith('::ffff:127.0.0.1') || rawClean === 'localhost')
+    ? '127.0.0.1'
+    : rawClean;
 
-  // 1. Privacy: Hash the IP address using SHA-256
-  // Never store raw IP addresses in your database!
-  const ipHash = cleanIp
-    ? crypto.createHash('sha256').update(cleanIp).digest('hex')
-    : 'unknown';
+  // 1. Privacy: Composite SHA-256 hash (IP + User-Agent)
+  // Distinguishes 2 devices on the same Wi-Fi while consolidating repeat clicks
+  const visitorIdentifier = `${cleanIp}|${userAgent}`;
+  const ipHash = crypto.createHash('sha256').update(visitorIdentifier).digest('hex');
 
   // 2. Geo-Location Lookup via geoip-lite (offline lookup, sub-0.1ms)
   let country = 'Unknown';

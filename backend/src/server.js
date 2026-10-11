@@ -202,14 +202,21 @@ app.get('/:code', async (req, res) => {
     // STEP 3: ASYNCHRONOUS TELEMETRY (Fire-and-Forget into BullMQ)
     // Takes < 1ms to push to Redis queue, never slowing down the redirect!
     // ------------------------------------------------------------------------
-    // Extract clean client IP (handles comma-separated proxy chains from Render)
-    const rawIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress || '';
-    const clientIp = typeof rawIp === 'string' ? rawIp.split(',')[0].trim() : rawIp;
+        // Extract true client IP behind Render / Cloudflare proxy
+    const rawIp =
+      req.headers['cf-connecting-ip'] ||
+      (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) ||
+      req.ip ||
+      req.socket.remoteAddress ||
+      '127.0.0.1';
+
+    // Strip ephemeral client port if present (e.g., "157.45.12.34:52310" -> "157.45.12.34")
+    const clientIp = typeof rawIp === 'string' ? rawIp.replace(/(:\d+$)/, '').trim() : '127.0.0.1';
 
     telemetryQueue.add('process-click', {
       urlId: urlData.id,
       ip: clientIp,
-      userAgent: req.headers['user-agent'],
+      userAgent: req.headers['user-agent'] || '',
       referer: req.headers['referer'] || req.headers['referrer'] || 'Direct',
     }).catch((err) => console.error('Failed to enqueue click telemetry:', err));
 
