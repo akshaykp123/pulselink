@@ -3,7 +3,7 @@ import Navbar from './components/Navbar';
 import UrlShortener from './components/UrlShortener';
 import AnalyticsSummary from './components/AnalyticsSummary';
 import AnalyticsCharts from './components/AnalyticsCharts';
-import { ExternalLink, RefreshCw } from 'lucide-react';
+import { ExternalLink, RefreshCw, Link as LinkIcon } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
@@ -109,7 +109,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans overflow-x-hidden">
       <Navbar
         autoRefresh={autoRefresh}
         setAutoRefresh={setAutoRefresh}
@@ -129,38 +129,39 @@ export default function App() {
           apiBase={API_BASE}
         />
 
-        {/* Analytics section header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-2 pt-1">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Analytics</span>
-            <code className="text-xs font-mono font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
-              /{activeCode}
-            </code>
-            {analytics?.url?.originalUrl && (
-              <a
-                href={analytics.url.originalUrl}
-                target="_blank"
-                rel="noreferrer"
-                title={analytics.url.originalUrl}
-                className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-600 transition max-w-[280px] truncate"
-              >
-                <ExternalLink className="w-3 h-3 shrink-0" />
-                <span className="truncate">{analytics.url.originalUrl}</span>
-              </a>
-            )}
+                {/* Analytics section header */}
+        {analytics && (
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2 pt-1 gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider shrink-0">Analytics</span>
+              <code className="text-xs font-mono font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md shrink-0">
+                /{activeCode}
+              </code>
+              {analytics?.url?.originalUrl && (
+                <a
+                  href={analytics.url.originalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={analytics.url.originalUrl}
+                  className="hidden sm:flex items-center gap-1 text-xs text-slate-400 hover:text-blue-600 transition max-w-[280px] truncate min-w-0"
+                >
+                  <ExternalLink className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{analytics.url.originalUrl}</span>
+                </a>
+              )}
+            </div>
+
+            <button
+              onClick={handleManualRefresh}
+              disabled={isLoading || isRefreshing}
+              className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-blue-600 hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 hover:border-slate-300 transition cursor-pointer disabled:opacity-50 shrink-0"
+              title="Reload latest analytics and recent links"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isLoading ? 'animate-spin text-blue-600' : ''}`} />
+              <span className="font-medium">{isRefreshing ? 'Refreshing…' : 'Refresh'}</span>
+            </button>
           </div>
-
-          <button
-            onClick={handleManualRefresh}
-            disabled={isLoading || isRefreshing}
-            className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-blue-600 hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 hover:border-slate-300 transition cursor-pointer disabled:opacity-50"
-            title="Reload latest analytics and recent links"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isLoading ? 'animate-spin text-blue-600' : ''}`} />
-            <span className="font-medium">{isRefreshing ? 'Refreshing…' : 'Refresh'}</span>
-          </button>
-        </div>
-
+        )}
         {error && (
           <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
         )}
@@ -186,8 +187,16 @@ export default function App() {
         )}
 
         {!analytics && !error && !isLoading && (
-          <div className="py-12 flex items-center justify-center text-xs text-slate-400">
-            Waiting for data…
+          <div className="bg-white border border-slate-200 rounded-xl p-8 sm:p-12 text-center shadow-xs flex flex-col items-center justify-center my-2">
+            <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-3 shadow-xs">
+              <LinkIcon className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm sm:text-base font-bold text-slate-800 mb-1">
+              You haven't created any links yet
+            </h3>
+            <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
+              Paste a long URL above and click <span className="font-semibold text-blue-600">Shorten →</span> to generate your first link and view real-time click telemetry.
+            </p>
           </div>
         )}
       </main>
