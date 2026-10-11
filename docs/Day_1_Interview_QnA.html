@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PulseLink — Day 1: Infrastructure & SQL Schema Interview Prep</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 16mm;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      line-height: 1.6;
+      background-color: #ffffff;
+      padding: 0;
+      margin: 0;
+      font-size: 13.5px;
+    }
+
+    .header {
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+    }
+
+    .badge {
+      display: inline-block;
+      background-color: #dbeafe;
+      color: #1e40af;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 4px 0 6px 0;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .recap-box {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #3b82f6;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .recap-box h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #1e3a8a;
+    }
+
+    .recap-box ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .recap-box li {
+      margin-bottom: 4px;
+      color: #334155;
+    }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+      background-color: #ffffff;
+    }
+
+    .q-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+    }
+
+    .q-goal {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #0369a1;
+      background-color: #f0f9ff;
+      border: 1px solid #bae6fd;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .answer {
+      color: #334155;
+      margin: 0;
+    }
+
+    .answer strong {
+      color: #0f172a;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 12px;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 1.5px 5px;
+      border-radius: 4px;
+    }
+
+    pre {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 11.5px;
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="badge">Master Interview Prep</span>
+    <h1>Day 1: Infrastructure & SQL Schema Guide</h1>
+    <p class="subtitle">PulseLink — High-Throughput URL Shortener & Real-Time Telemetry Platform (Fresher Edition)</p>
+  </div>
+
+  <div class="recap-box">
+    <h3>📌 What We Built in Day 1:</h3>
+    <ul>
+      <li><strong>Docker Compose:</strong> Configured PostgreSQL 16 and Redis 7 in isolated containers with port forwarding (<code>5432:5432</code>, <code>6379:6379</code>) and named persistent volumes.</li>
+      <li><strong>Relational SQL Schema:</strong> Designed <code>users</code>, <code>urls</code>, and <code>clicks</code> tables with Primary Keys, Foreign Keys (<code>ON DELETE CASCADE</code>), and <code>BIGSERIAL</code> scaling.</li>
+      <li><strong>B-Tree Indexes:</strong> Implemented indexes on <code>short_code</code>, composite index on <code>(url_id, clicked_at DESC)</code>, and category indexes for analytics.</li>
+    </ul>
+  </div>
+
+  <!-- Q1 -->
+  <div class="card">
+    <div class="q-title">Q1: What is the difference between a Docker Image and a Docker Container?</div>
+    <div class="q-goal">Interviewer's Goal: Tests containerization basics and terminology.</div>
+    <p class="answer">
+      A <strong>Docker Image</strong> is an immutable, read-only blueprint/snapshot containing the application code, runtime libraries, and system dependencies needed to run software (e.g., <code>postgres:16-alpine</code>).<br><br>
+      A <strong>Docker Container</strong> is an active, runnable instance created from that image. It executes as an isolated process on the host operating system with its own virtual filesystem, environment variables, and network ports.
+    </p>
+  </div>
+
+  <!-- Q2 -->
+  <div class="card">
+    <div class="q-title">Q2: In docker-compose.yml, what does "5432:5432" mean? What happens if you change it to "5433:5432"?</div>
+    <div class="q-goal">Interviewer's Goal: Tests understanding of network isolation and port forwarding.</div>
+    <p class="answer">
+      The syntax is <code>HOST_PORT:CONTAINER_PORT</code>. Docker containers are isolated from the host computer by default. <code>5432:5432</code> routes incoming traffic on port 5432 of your local machine directly into port 5432 inside the PostgreSQL container.<br><br>
+      If changed to <code>5433:5432</code>, PostgreSQL inside the container still listens on 5432, but external host applications (like Node.js or psql) must connect via <code>localhost:5433</code>. This is common when another local database already occupies port 5432.
+    </p>
+  </div>
+
+  <!-- Q3 -->
+  <div class="card">
+    <div class="q-title">Q3: Why are Docker Volumes critical for databases? What happens to database records without a volume?</div>
+    <div class="q-goal">Interviewer's Goal: Tests knowledge of container ephemerality and data persistence.</div>
+    <p class="answer">
+      Containers are designed to be ephemeral (disposable). Any data written to a container's internal writable layer is permanently lost when the container is deleted or recreated.<br><br>
+      A <strong>Docker Volume</strong> maps a dedicated storage directory on the host machine's physical disk into the container. This decouples data storage from the container lifecycle—allowing you to stop, update, or destroy containers without losing any database records.
+    </p>
+  </div>
+
+  <!-- Q4 -->
+  <div class="card">
+    <div class="q-title">Q4: Why did we choose BIGSERIAL for urls.id instead of a standard SERIAL?</div>
+    <div class="q-goal">Interviewer's Goal: Evaluates architectural foresight regarding scale and numeric data types.</div>
+    <p class="answer">
+      A standard PostgreSQL <code>SERIAL</code> is a 32-bit signed integer with an upper limit of ~2.14 billion rows (<code>2,147,483,647</code>). A global URL shortening service can easily exhaust this limit over time, leading to primary key overflow errors.<br><br>
+      By choosing <code>BIGSERIAL</code> (64-bit integer), the table supports up to ~9 quintillion rows (<code>9 × 10¹⁸</code>). In Day 2, this numeric ID also serves as the seed that Base62 converts into compact 6-character short codes.
+    </p>
+  </div>
+
+  <!-- Q5 -->
+  <div class="card">
+    <div class="q-title">Q5: What is a Foreign Key, and why did we add ON DELETE CASCADE on clicks.url_id?</div>
+    <div class="q-goal">Interviewer's Goal: Evaluates relational integrity and data lifecycle management.</div>
+    <p class="answer">
+      A <strong>Foreign Key</strong> enforces referential integrity by guaranteeing that a column in one table matches a valid primary key in another table (every click must belong to an existing URL).<br><br>
+      <code>ON DELETE CASCADE</code> instructs PostgreSQL to automatically delete all child telemetry rows in <code>clicks</code> whenever their parent record in <code>urls</code> is deleted. This prevents "orphan records" from consuming disk space and skewing future aggregate calculations.
+    </p>
+  </div>
+
+  <!-- Q6 -->
+  <div class="card">
+    <div class="q-title">Q6: What is a B-Tree Index in PostgreSQL, and how does it speed up queries?</div>
+    <div class="q-goal">Interviewer's Goal: Tests query optimization, data structures, and algorithmic complexity.</div>
+    <p class="answer">
+      A <strong>B-Tree (Balanced Tree)</strong> index organizes column values in a sorted multi-level tree structure.<br><br>
+      Without an index, PostgreSQL must execute a <strong>Sequential Scan</strong> (<code>O(N)</code>), inspecting every single row on disk. With 10 million URLs, this takes hundreds of milliseconds.<br><br>
+      With a B-Tree index on <code>short_code</code>, PostgreSQL traverses the balanced tree via binary search in logarithmic time (<code>O(log N)</code>), finding the target row in under 1–2 milliseconds.
+    </p>
+  </div>
+
+  <!-- Q7 -->
+  <div class="card">
+    <div class="q-title">Q7: What is the trade-off of indexes? Why shouldn't we index every column?</div>
+    <div class="q-goal">Interviewer's Goal: Tests understanding of write overhead and real-world system costs.</div>
+    <p class="answer">
+      Indexes are not free. They introduce two distinct costs:
+      <ul>
+        <li><strong>Slower Write Operations (INSERT / UPDATE / DELETE):</strong> Every write to the table requires the database engine to update and rebalance all corresponding index trees on disk.</li>
+        <li><strong>Storage and RAM Overhead:</strong> Indexes consume substantial disk space and must fit into database buffer cache (RAM) for peak speed.</li>
+      </ul>
+      Indexes should only be created on columns frequently queried in <code>WHERE</code>, <code>JOIN</code>, or <code>ORDER BY</code> clauses.
+    </p>
+  </div>
+
+  <!-- Q8 -->
+  <div class="card">
+    <div class="q-title">Q8: What is a Composite Index, and why create idx_clicks_url_id_clicked_at on (url_id, clicked_at DESC)?</div>
+    <div class="q-goal">Interviewer's Goal: Tests multi-column indexing strategy for time-series analytics.</div>
+    <p class="answer">
+      A <strong>Composite Index</strong> spans two or more columns in a predefined order. Our analytics dashboard repeatedly executes:
+      <pre><code>SELECT * FROM clicks WHERE url_id = $1 ORDER BY clicked_at DESC LIMIT 50;</code></pre>
+      If we had separate single-column indexes, PostgreSQL would filter rows by <code>url_id</code>, and then perform an expensive in-memory sort on <code>clicked_at</code>.<br><br>
+      The composite index <code>(url_id, clicked_at DESC)</code> allows PostgreSQL to filter by the URL and immediately stream pre-sorted records directly from the index tree without any sorting overhead.
+    </p>
+  </div>
+
+  <!-- Q9 -->
+  <div class="card">
+    <div class="q-title">Q9: Why does the architecture use BOTH PostgreSQL and Redis? Why not just PostgreSQL?</div>
+    <div class="q-goal">Interviewer's Goal: Tests understanding of In-Memory vs Disk-based storage trade-offs.</div>
+    <p class="answer">
+      <strong>PostgreSQL</strong> is a persistent, disk-based relational database. It excels at complex relational queries, constraints, and long-term durability, but disk operations typically take 15–40ms.<br><br>
+      <strong>Redis</strong> operates completely in RAM, delivering key-value reads in sub-2ms.<br><br>
+      For a URL shortener, redirect performance is critical. We use Redis in front of PostgreSQL (Cache-Aside pattern) to serve hot link redirects in &lt;2ms, and as a lightweight broker for our BullMQ background telemetry queue.
+    </p>
+  </div>
+
+  <!-- Q10 -->
+  <div class="card">
+    <div class="q-title">Q10: How did init.sql run automatically when the PostgreSQL container started?</div>
+    <div class="q-goal">Interviewer's Goal: Tests familiarity with container entrypoint lifecycle hooks.</div>
+    <p class="answer">
+      In <code>docker-compose.yml</code>, we mounted <code>./backend/db/init.sql</code> into <code>/docker-entrypoint-initdb.d/01-init.sql:ro</code>.<br><br>
+      The official PostgreSQL container image features an initialization hook in its entrypoint script: on its initial startup (when the database storage directory is empty), it automatically discovers and executes any <code>.sql</code> files placed in <code>/docker-entrypoint-initdb.d/</code> before opening up external networking.
+    </p>
+  </div>
+
+  <div class="footer">
+    PulseLink Telemetry Platform — Master Study & Build Series • Day 1 Complete
+  </div>
+
+</body>
+</html>

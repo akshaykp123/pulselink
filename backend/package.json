@@ -1,0 +1,23 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "bullmq": "^6.3.11",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "geoip-lite": "^1.4.10",
+    "ioredis": "^6.0.0",
+    "pg": "^8.11.5",
+    "ua-parser-js": "^2.0.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

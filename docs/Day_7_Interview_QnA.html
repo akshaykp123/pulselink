@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PulseLink — Day 7: System Design & Enterprise Architecture Interview Prep</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 16mm;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      line-height: 1.6;
+      background-color: #ffffff;
+      padding: 0;
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .header {
+      border-bottom: 2px solid #6366f1;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-block;
+      background-color: #eef2ff;
+      color: #4338ca;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 4px 0 6px 0;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .recap-box {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #6366f1;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 22px;
+    }
+
+    .recap-box h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #4338ca;
+    }
+
+    .recap-box ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .recap-box li {
+      margin-bottom: 4px;
+      color: #334155;
+    }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 15px 18px;
+      margin-bottom: 15px;
+      page-break-inside: avoid;
+      background-color: #ffffff;
+    }
+
+    .q-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+    }
+
+    .q-goal {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #4338ca;
+      background-color: #eef2ff;
+      border: 1px solid #c7d2fe;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .answer {
+      color: #334155;
+      margin: 0;
+    }
+
+    .answer strong {
+      color: #0f172a;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 12px;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 1.5px 5px;
+      border-radius: 4px;
+    }
+
+    pre {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 11.5px;
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    .print-tip {
+      font-size: 11.5px;
+      color: #94a3b8;
+      text-align: right;
+      margin-top: 15px;
+      margin-bottom: 25px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="badge">Day 7 Interview Preparation</span>
+    <h1>PulseLink — Senior System Design & Architecture Masterclass</h1>
+    <p class="subtitle">Capacity Planning, High-Availability, Fault-Tolerance, Scaling Tradeoffs & Failure Modes</p>
+  </div>
+
+  <div class="print-tip">
+    💡 Open this file in your browser and press <strong>Ctrl + P</strong> (Save as PDF) with background graphics enabled.
+  </div>
+
+  <div class="recap-box">
+    <h3>Day 7 System Design Foundations Summary:</h3>
+    <ul>
+      <li><strong>Read-to-Write Ratio:</strong> 100:1 read-dominant system (~40 write QPS vs. ~4,000 read QPS).</li>
+      <li><strong>5-Year Storage:</strong> 3 TB for 6 billion short links; 120 TB for 600 billion telemetry clicks.</li>
+      <li><strong>Memory Sizing (80/20 Rule):</strong> Caching the 20% most popular links requires &lt; 1 GB of Redis RAM.</li>
+      <li><strong>Asynchronous Decoupling:</strong> Low-latency redirects (&lt; 2ms) separated from analytics writes via BullMQ.</li>
+      <li><strong>Fault-Tolerance:</strong> Fail-open rate limiting and cache-aside fallbacks preventing cascading service failures.</li>
+    </ul>
+  </div>
+
+  <!-- Q1 -->
+  <div class="card">
+    <div class="q-title">Q1: How do you calculate traffic, storage, and cache memory requirements for a URL shortener during an interview?</div>
+    <div class="q-goal">Interview Goal: Demonstrate structured back-of-the-envelope estimation and engineering sizing.</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      Always establish the <strong>Write vs. Read</strong> baseline first:
+      <ul>
+        <li><strong>Traffic (QPS):</strong> Assume 100M new URLs/month. Seconds in a month = $30 \times 24 \times 3,600 \approx 2.6\text{M}$.
+          <br>Write QPS = $100\text{M} / 2.6\text{M} \approx \mathbf{40\text{ writes/sec}}$.
+          <br>Because URL shorteners have a <strong>100:1 read ratio</strong>, Read QPS = $40 \times 100 = \mathbf{4,000\text{ reads/sec}}$ (Peak: ~8,000 QPS).</li>
+        <li><strong>Storage (5 Years):</strong> 100M/month $\times$ 60 months = <strong>6 billion URLs</strong>. At 500 bytes/row, total URL storage = $6\text{B} \times 500\text{B} \approx \mathbf{3\text{ TB}}$ (easily fits on a single managed database disk).
+          <br>For 600 billion clicks at 200 bytes/row = $\mathbf{120\text{ TB}}$ (requires partitioning and archiving).</li>
+        <li><strong>Cache Memory (80/20 Pareto Rule):</strong> 80% of redirect traffic hits 20% of trending links. Daily clicks = $4,000 \times 86,400 \approx 345\text{M}$. Caching 20% of active daily links (~600K keys at 250 bytes) requires only $\approx \mathbf{150\text{ MB}}$ of RAM. Even caching 20 million hot links requires only <strong>5 GB of Redis RAM</strong>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="card">
+    <div class="q-title">Q2: Why did we choose Base62 encoding over MD5/SHA-256 hashes or UUIDs for generating short codes?</div>
+    <div class="q-goal">Interview Goal: Compare slug generation strategies, collision mitigation, and URL length optimization.</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      There are three common approaches, but Base62 derived from an auto-increment sequence is mathematically superior:
+      <ul>
+        <li><strong>UUIDv4:</strong> 36 characters long (e.g., <code>123e4567-e89b-12d3-a456-426614174000</code>). Defeats the purpose of a URL shortener.</li>
+        <li><strong>MD5 / SHA-256 Hash Truncation:</strong> Hashing the original URL and taking the first 6 characters leads to <strong>hash collisions</strong> (birthday paradox). Handling collisions requires querying the database, detecting conflicts, appending a salt, and rehashing in a loop, introducing unpredictable write latency.</li>
+        <li><strong>Bijective Base62 Encoding (PulseLink Choice):</strong> Base62 maps a 64-bit integer ID directly to 6 characters (using <code>0-9, a-z, A-Z</code>).
+          <br><strong>Advantages:</strong> $62^6 = 56,800,235,584$ (56.8 billion) unique codes. It is a 1-to-1 bijection, meaning <strong>zero collisions by definition</strong>, deterministic execution, and zero retry loops.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="card">
+    <div class="q-title">Q3: How do you prevent users from guessing sequential URLs in a Base62 system?</div>
+    <div class="q-goal">Interview Goal: Address security vulnerabilities in sequence-based ID generators (enumeration attacks).</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      If database IDs increment sequentially (1, 2, 3...), short codes increment sequentially (<code>000001</code> &rarr; <code>000002</code> &rarr; <code>000003</code>). Competitors or attackers could scrape the entire database using an enumeration script.
+      <br><br>
+      <strong>Production Solutions:</strong>
+      <ol>
+        <li><strong>Feistel Cipher / Bit Permutation:</strong> Pass the auto-increment integer ID through a lightweight pseudo-random permutation function (like a 3-round Feistel cipher or Skip32) before Base62 encoding. The transformation is 1-to-1 and reversible, but consecutive numbers appear completely random (e.g., ID 1 &rarr; <code>xK9w2Z</code>, ID 2 &rarr; <code>aB4pQ1</code>).</li>
+        <li><strong>Distributed Snowflake ID:</strong> Use a 64-bit Twitter Snowflake ID (Timestamp + Machine ID + Sequence bits). The higher-order bits are non-linear, masking predictable sequences.</li>
+        <li><strong>Token Range Pre-allocation:</strong> Pre-generate blocks of random unique IDs into Redis sets or an ID generation service (like ZooKeeper) and pop tokens atomically.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Q4 -->
+  <div class="card">
+    <div class="q-title">Q4: What is the Cache-Aside pattern, and what happens during a Cache Stampede or Cache Avalanche?</div>
+    <div class="q-goal">Interview Goal: Explain cache architectures, failure modes, and mitigation strategies.</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      In <strong>Cache-Aside</strong> (Lazy Loading), the application checks Redis first. On a <em>Cache Hit</em>, it returns data immediately (&lt; 2ms). On a <em>Cache Miss</em>, it reads from PostgreSQL, returns the result, and writes it to Redis with an expiration TTL (24 hours).
+      <br><br>
+      <strong>Critical Failure Modes & Mitigations:</strong>
+      <ul>
+        <li><strong>Cache Avalanche:</strong> Many cached keys expire at the exact same second, causing thousands of requests to hit PostgreSQL simultaneously.
+          <br><em>Mitigation:</em> Add <strong>randomized jitter</strong> to TTLs (e.g., $86400 \pm \text{random}(0, 3600)$ seconds).</li>
+        <li><strong>Cache Stampede (Thundering Herd):</strong> A viral link's cache key expires, and 5,000 concurrent requests all miss Redis simultaneously, overloading the database with 5,000 identical queries.
+          <br><em>Mitigation:</em> Use a <strong>Mutex / Distributed Lock</strong> in Redis (only one thread queries Postgres and repopulates cache; others wait 50ms) or <strong>Probabilistic Early Expiration (XFetch)</strong>.</li>
+        <li><strong>Cache Penetration:</strong> Attackers request non-existent short codes (e.g., <code>/fake999</code>) that are never in Redis, forcing constant database queries.
+          <br><em>Mitigation:</em> Cache <code>null</code> values for 60 seconds or use a <strong>Bloom Filter</strong> in front of Redis.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Q5 -->
+  <div class="card">
+    <div class="q-title">Q5: Why did we use BullMQ and an asynchronous message queue for telemetry instead of writing directly to PostgreSQL?</div>
+    <div class="q-goal">Interview Goal: Explain architectural decoupling, write throughput buffering, and latency optimization.</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      If click telemetry is written synchronously inside <code>GET /:code</code>:
+      <ol>
+        <li><strong>Latency Penalty:</strong> The user's redirect must wait for GeoIP lookup, User-Agent parsing, SHA-256 IP hashing, and a PostgreSQL disk insert, increasing redirect latency from <strong>2ms to 40ms+</strong>.</li>
+        <li><strong>Database Connection Pool Exhaustion:</strong> During a traffic spike (e.g., a viral Super Bowl tweet receiving 10,000 clicks/sec), PostgreSQL's connection pool (typically 20-50 connections) would saturate immediately, crashing the redirect gateway.</li>
+      </ol>
+      <strong>BullMQ Solution:</strong>
+      <br>
+      Redis memory pushes take <strong>&lt; 0.5ms</strong>. The gateway pushes the job and returns an instant HTTP 302 redirect (Fire-and-Forget). The BullMQ worker drains the queue at a controlled, sustainable rate (e.g., concurrency: 5), acting as a <strong>shock absorber</strong> that protects PostgreSQL from spiky write surges.
+    </div>
+  </div>
+
+  <!-- Q6 -->
+  <div class="card">
+    <div class="q-title">Q6: How would you scale the PostgreSQL database when the clicks table reaches 120 Terabytes?</div>
+    <div class="q-goal">Interview Goal: Demonstrate database scaling strategies, indexing tradeoffs, and data lifecycle management.</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      At 120 TB, traditional B-tree indexes cannot fit in RAM, causing severe disk thrashing. We apply a 3-tier scaling strategy:
+      <ol>
+        <li><strong>PostgreSQL Declarative Table Partitioning (Range by Month):</strong>
+          <pre><code>CREATE TABLE clicks (...) PARTITION BY RANGE (clicked_at);
+CREATE TABLE clicks_2026_10 PARTITION OF clicks
+  FOR VALUES FROM ('2026-10-01') TO ('2026-11-01');</code></pre>
+          Queries for "last 24 hours" or "this month" only scan the latest partition (Partition Pruning), keeping active index trees tiny and in RAM.
+        </li>
+        <li><strong>Read-Heavy Analytics Read Replicas:</strong> Route <code>GET /api/urls/:code/analytics</code> queries to read replicas using asynchronous streaming replication, keeping the primary database dedicated strictly to writes.</li>
+        <li><strong>Cold Storage Archival (OLAP Offloading):</strong> Clicks older than 90 days are archived via a cron job to Amazon S3 in <strong>Parquet format</strong>. For enterprise querying, sync older data into a columnar OLAP database like <strong>ClickHouse</strong> or <strong>BigQuery</strong>, where aggregation queries over billions of rows run in milliseconds.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Q7 -->
+  <div class="card">
+    <div class="q-title">Q7: Why does PulseLink hash IP addresses with SHA-256, and what privacy regulations does this satisfy?</div>
+    <div class="q-goal">Interview Goal: Address data privacy, GDPR compliance, and security best practices.</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      Under the <strong>General Data Protection Regulation (GDPR)</strong> and <strong>California Consumer Privacy Act (CCPA)</strong>, an IPv4 or IPv6 address is legally classified as <strong>Personally Identifiable Information (PII)</strong> because it can identify an individual household or device.
+      <br><br>
+      <strong>Engineering Strategy:</strong>
+      <ul>
+        <li>Storing raw IP addresses in database tables requires user consent, data deletion workflows (Right to be Forgotten), and heavy compliance overhead.</li>
+        <li>We perform a <strong>one-way SHA-256 cryptographic hash</strong> before saving:
+          <pre><code>const ipHash = crypto.createHash('sha256').update(ip).digest('hex');</code></pre>
+        </li>
+        <li><strong>Why this satisfies both analytics and privacy:</strong> The raw IP is never written to disk or logs. However, the hash is deterministic, allowing our SQL query to compute accurate <code>COUNT(DISTINCT ip_hash)</code> (Unique Visitors) without storing sensitive user identities.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Q8 -->
+  <div class="card">
+    <div class="q-title">Q8: Why did we choose a Fixed Window Counter for rate limiting, and what are its tradeoffs vs. Sliding Window and Token Bucket?</div>
+    <div class="q-goal">Interview Goal: Compare distributed rate limiting algorithms and their implementation costs.</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      We used Redis <code>INCR</code> + <code>EXPIRE</code> on key <code>ratelimit:{ip}:{windowBucket}</code>:
+      <ul>
+        <li><strong>Fixed Window Counter (PulseLink):</strong>
+          <br><em>Pros:</em> Extremely fast (atomic single-command execution in &lt; 1ms), minimal memory footprint (1 integer per IP).
+          <br><em>Cons:</em> <strong>Boundary Bursting:</strong> A user can send 5 requests at 00:59 and 5 requests at 01:01 (10 requests within a 2-second span), momentarily exceeding the rate limit.</li>
+        <li><strong>Sliding Window Log:</strong>
+          <br><em>Pros:</em> 100% mathematically accurate; eliminates boundary bursts.
+          <br><em>Cons:</em> Stores a Redis Sorted Set (ZSET) of timestamps for every single request. Consumes massive memory under high traffic.</li>
+        <li><strong>Token Bucket / Leaky Bucket:</strong>
+          <br><em>Pros:</em> Smooths out bursts while allowing configured peak spikes; widely used in AWS API Gateway and Stripe.
+          <br><em>Cons:</em> Requires tracking fractional token replenishment timestamps, requiring custom Lua scripts in Redis.</li>
+      </ul>
+      <em>Conclusion:</em> For protecting URL creation endpoints, Fixed Window provides the best tradeoff between extreme throughput, zero memory bloat, and sufficient abuse protection.
+    </div>
+  </div>
+
+  <!-- Q9 -->
+  <div class="card">
+    <div class="q-title">Q9: What happens if Redis crashes completely? How does PulseLink handle this failure?</div>
+    <div class="q-goal">Interview Goal: Demonstrate high-availability awareness, fallback mechanisms, and resilience engineering.</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      PulseLink employs a <strong>Graceful Degradation & Fail-Open</strong> architecture:
+      <ol>
+        <li><strong>Redirect Gateway:</strong> If Redis is unreachable, the Cache-Aside pattern catches the Redis timeout error and falls back directly to PostgreSQL. Redirects slow down from 2ms to ~40ms, but <strong>users are never dropped or returned HTTP 500 errors</strong>.</li>
+        <li><strong>Rate Limiter (Fail-Open):</strong> The rate limiter catches Redis connection errors, logs an alert, and calls <code>next()</code>. In production, it is safer to temporarily allow excess traffic than to block 100% of legitimate users during a cache outage.</li>
+        <li><strong>BullMQ Telemetry Queue:</strong> BullMQ queue additions are wrapped in <code>.catch()</code> error handlers. A Redis downtime pauses telemetry ingestion, but the core redirect path continues operating uninterrupted.</li>
+        <li><strong>High-Availability Production Fix:</strong> In production, deploy <strong>Redis Sentinel</strong> (automatic failover) or <strong>Redis Cluster</strong> with multi-AZ read replicas so a single instance crash promotes a replica in &lt; 3 seconds.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Q10 -->
+  <div class="card">
+    <div class="q-title">Q10: Walk an interviewer through the complete production deployment topology of PulseLink at scale.</div>
+    <div class="q-goal">Interview Goal: Illustrate enterprise cloud infrastructure, load balancing, and multi-tier architecture.</div>
+    <div class="answer">
+      <strong>Answer:</strong>
+      <br>
+      At enterprise scale, PulseLink deploys across four tiers:
+      <ul>
+        <li><strong>1. Edge Tier (Cloudflare / AWS CloudFront):</strong> Edge CDN caches 302 redirects for top viral URLs at points-of-presence globally, resolving clicks in &lt; 10ms without ever reaching origin servers. WAF blocks DDoS attacks.</li>
+        <li><strong>2. Application Tier (AWS ECS / Kubernetes):</strong> Stateless Node.js Express containers auto-scale horizontally based on CPU and request latency metrics behind an Application Load Balancer (ALB).</li>
+        <li><strong>3. In-Memory Tier (AWS ElastiCache Redis Cluster):</strong> Multi-node Redis cluster with automatic sharding and replication. Handles primary Cache-Aside lookups and rate limiting.</li>
+        <li><strong>4. Persistence Tier:</strong>
+          <ul>
+            <li><strong>AWS Aurora PostgreSQL (Primary + 3 Read Replicas):</strong> Write traffic (new URLs and BullMQ worker click inserts) hits Primary. Analytical dashboard queries hit Read Replicas.</li>
+            <li><strong>Amazon S3 + ClickHouse / Athena:</strong> Cold clickstream data archived monthly for long-term analytical queries.</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+</body>
+</html>

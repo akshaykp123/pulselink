@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PulseLink — Day 5: SQL Aggregations & Rate Limiting Interview Prep</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 16mm;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      line-height: 1.6;
+      background-color: #ffffff;
+      padding: 0;
+      margin: 0;
+      font-size: 13.5px;
+    }
+
+    .header {
+      border-bottom: 2px solid #f59e0b;
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+    }
+
+    .badge {
+      display: inline-block;
+      background-color: #fef3c7;
+      color: #b45309;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 4px 0 6px 0;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .recap-box {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #f59e0b;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .recap-box h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #b45309;
+    }
+
+    .recap-box ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .recap-box li {
+      margin-bottom: 4px;
+      color: #334155;
+    }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+      background-color: #ffffff;
+    }
+
+    .q-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+    }
+
+    .q-goal {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #b45309;
+      background-color: #fffbeb;
+      border: 1px solid #fde68a;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .answer {
+      color: #334155;
+      margin: 0;
+    }
+
+    .answer strong {
+      color: #0f172a;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 12px;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 1.5px 5px;
+      border-radius: 4px;
+    }
+
+    pre {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 11.5px;
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="badge">Master Interview Prep</span>
+    <h1>Day 5: SQL Aggregations & Rate Limiting Guide</h1>
+    <p class="subtitle">PulseLink — High-Throughput URL Shortener & Real-Time Telemetry Platform (Fresher Edition)</p>
+  </div>
+
+  <div class="recap-box">
+    <h3>📌 What We Built in Day 5:</h3>
+    <ul>
+      <li><strong>Analytics Aggregation API:</strong> Implemented <code>GET /api/urls/:code/analytics</code> executing 5 concurrent queries via <code>Promise.all</code> with zero Node.js memory overhead.</li>
+      <li><strong>Complex SQL Metrics:</strong> Used <code>COUNT(DISTINCT ip_hash)</code> for unique visitor telemetry, <code>GROUP BY</code> for Countries, Devices, and Browsers, and <code>date_trunc('hour', ...)</code> for time-series charts.</li>
+      <li><strong>Redis IP Rate Limiting Middleware:</strong> Built an atomic Fixed Window Counter using Redis <code>INCR</code>, <code>EXPIRE</code>, and <code>TTL</code> with standard headers (<code>Retry-After</code>).</li>
+      <li><strong>Resilient Defense:</strong> Verified blocking spammers on the 6th request with HTTP 429 and designed with Fail-Open error handling.</li>
+    </ul>
+  </div>
+
+  <!-- Q1 -->
+  <div class="card">
+    <div class="q-title">Q1: What are SQL Aggregations (GROUP BY, COUNT), and why run them in PostgreSQL instead of JavaScript memory?</div>
+    <div class="q-goal">Interviewer's Goal: Tests understanding of database query execution vs application memory bottlenecks.</div>
+    <p class="answer">
+      If an application pulls 1,000,000 raw click records into Node.js to group and count them in memory (e.g. <code>Array.reduce</code>), it consumes hundreds of megabytes of RAM and freezes the Node.js single-threaded event loop.<br><br>
+      PostgreSQL is compiled in C and optimized to process aggregations directly on disk using our B-Tree indexes. It executes <code>GROUP BY</code> and <code>COUNT</code> across a million rows in under 10ms and transmits only a few bytes of summary numbers back to Node.js.
+    </p>
+  </div>
+
+  <!-- Q2 -->
+  <div class="card">
+    <div class="q-title">Q2: What is the difference between COUNT(*) and COUNT(DISTINCT ip_hash)?</div>
+    <div class="q-goal">Interviewer's Goal: Tests aggregate SQL functions and telemetry calculation.</div>
+    <p class="answer">
+      <code>COUNT(*)</code> calculates the absolute total number of rows (Total Clicks) matching the <code>url_id</code>, regardless of who clicked it.<br><br>
+      <code>COUNT(DISTINCT ip_hash)</code> inspects the anonymized visitor hashes and counts only unique occurrences (Unique Visitors). If a single person clicks the link 20 times from the same device, <code>COUNT(*)</code> returns 20, while <code>COUNT(DISTINCT ip_hash)</code> returns 1.
+    </p>
+  </div>
+
+  <!-- Q3 -->
+  <div class="card">
+    <div class="q-title">Q3: How does date_trunc('hour', clicked_at) work, and why is it useful for time-series charts?</div>
+    <div class="q-goal">Interviewer's Goal: Tests date/time manipulation in SQL for data visualization.</div>
+    <p class="answer">
+      <code>date_trunc('hour', timestamp)</code> truncates a full timestamp to the beginning of its specified interval by zeroing out minutes, seconds, and milliseconds (e.g. <code>14:23:45.120</code> becomes <code>14:00:00.000</code>).<br><br>
+      This creates uniform hourly 'time buckets'. When combined with <code>GROUP BY time_bucket</code>, all clicks that occurred within that hour are aggregated into a single data point, enabling charting libraries (like Recharts) to plot smooth time-series curves.
+    </p>
+  </div>
+
+  <!-- Q4 -->
+  <div class="card">
+    <div class="q-title">Q4: Why did we use Promise.all to execute our 5 analytics queries? How does that interact with our Connection Pool?</div>
+    <div class="q-goal">Interviewer's Goal: Tests asynchronous JavaScript concurrency and database pool utilization.</div>
+    <p class="answer">
+      If we executed the 5 queries sequentially using <code>await</code> one after another, the total latency would be the sum of all 5 queries (e.g. <code>10ms × 5 = 50ms</code>).<br><br>
+      By wrapping them in <code>Promise.all([ ... ])</code>, Node.js fires all 5 queries simultaneously. Our <code>pg.Pool</code> immediately loans out 5 available client connections in parallel, allowing PostgreSQL to execute all 5 queries concurrently across CPU cores. The total response time equals the single slowest query (~10ms total).
+    </p>
+  </div>
+
+  <!-- Q5 -->
+  <div class="card">
+    <div class="q-title">Q5: What is an Express Middleware, and what is the role of next()?</div>
+    <div class="q-goal">Interviewer's Goal: Tests Express request lifecycle architecture.</div>
+    <p class="answer">
+      A <strong>Middleware</strong> is a function with access to the request (<code>req</code>), response (<code>res</code>), and the <code>next</code> function in the application's request-response cycle.<br><br>
+      It acts as an interceptor. If the middleware validates that the request is permitted (under the rate limit), it calls <code>next()</code> to pass control to the subsequent middleware or route handler. If the request violates policy, it terminates the cycle early by returning a response (e.g. <code>res.status(429)</code>), preventing downstream code from executing.
+    </p>
+  </div>
+
+  <!-- Q6 -->
+  <div class="card">
+    <div class="q-title">Q6: Explain the "Fixed Window Counter" algorithm using Redis INCR and EXPIRE.</div>
+    <div class="q-goal">Interviewer's Goal: Tests algorithmic knowledge of rate limiting.</div>
+    <p class="answer">
+      In a <strong>Fixed Window Counter</strong> algorithm:
+      <ol>
+        <li>We construct a unique Redis key per client IP: <code>ratelimit:&lt;route&gt;:&lt;ip&gt;</code>.</li>
+        <li>We call <code>redis.incr(key)</code>. If the key does not exist, Redis initializes it with value <code>1</code>.</li>
+        <li>If the count is <code>1</code> (first request of the window), we set an expiration timer: <code>redis.expire(key, 60)</code>.</li>
+        <li>On subsequent requests, <code>INCR</code> increments the counter. If the counter exceeds the maximum allowed threshold before the 60-second TTL expires, requests are rejected with HTTP 429.</li>
+        <li>Once the TTL expires, Redis automatically deletes the key, resetting the counter for the next window.</li>
+      </ol>
+    </p>
+  </div>
+
+  <!-- Q7 -->
+  <div class="card">
+    <div class="q-title">Q7: Why is Redis INCR considered "atomic", and why does that matter for rate limiting?</div>
+    <div class="q-goal">Interviewer's Goal: Tests concurrency, multi-threading, and race condition prevention.</div>
+    <p class="answer">
+      An <strong>atomic operation</strong> executes completely in a single step without the possibility of interruption or interleaving.<br><br>
+      If rate limiting was done in a traditional database with read-then-write (<code>SELECT count ... UPDATE count = count + 1</code>), concurrent requests arriving at the exact same millisecond could read the same count simultaneously, causing a <strong>Race Condition</strong> where an attacker bypasses the limit.<br><br>
+      Because Redis is single-threaded, <code>INCR</code> executes atomically in RAM. Every increment is guaranteed to see the exact incremented value of the previous operation, making race conditions impossible.
+    </p>
+  </div>
+
+  <!-- Q8 -->
+  <div class="card">
+    <div class="q-title">Q8: What is the limitation of Fixed Window Counter vs Sliding Window?</div>
+    <div class="q-goal">Interviewer's Goal: Tests advanced rate limiting algorithms (Senior/Mid-level question).</div>
+    <p class="answer">
+      The main limitation of a <strong>Fixed Window</strong> algorithm is the <strong>Boundary Burst Problem</strong>.<br><br>
+      If a user sends 5 requests at second 59, and 5 more requests at second 01 of the next window, they have sent 10 requests within a 2-second window without triggering the 5-requests/minute limit.<br><br>
+      To eliminate this edge case, advanced production systems use a <strong>Sliding Window Log</strong> (storing timestamps in a Redis Sorted Set <code>ZSET</code>) or a <strong>Token Bucket</strong> algorithm.
+    </p>
+  </div>
+
+  <!-- Q9 -->
+  <div class="card">
+    <div class="q-title">Q9: What are the standard HTTP headers returned by a rate limiter?</div>
+    <div class="q-goal">Interviewer's Goal: Tests API standards, RFC compliance, and developer experience.</div>
+    <p class="answer">
+      Industry-standard rate limiting headers include:
+      <ul>
+        <li><code>X-RateLimit-Limit</code>: The maximum number of allowed requests in the current window.</li>
+        <li><code>X-RateLimit-Remaining</code>: The number of requests remaining in the current window.</li>
+        <li><code>X-RateLimit-Reset</code>: The number of seconds until the rate limit window resets.</li>
+        <li><code>Retry-After</code>: (Returned on HTTP 429) Specifies the exact number of seconds the client must wait before retrying.</li>
+      </ul>
+    </p>
+  </div>
+
+  <!-- Q10 -->
+  <div class="card">
+    <div class="q-title">Q10: What is the "Fail-Open" vs "Fail-Closed" strategy in rate limiting?</div>
+    <div class="q-goal">Interviewer's Goal: Tests system reliability trade-offs and disaster recovery design.</div>
+    <p class="answer">
+      When a rate limiter's backing store (Redis) experiences a network crash or outage:
+      <ul>
+        <li><strong>Fail-Closed:</strong> The system blocks ALL incoming traffic until Redis recovers. This maximizes security but causes a complete outage for legitimate users.</li>
+        <li><strong>Fail-Open:</strong> The middleware catches the Redis error, logs an alert, and calls <code>next()</code> to allow requests through to the database.</li>
+      </ul>
+      In our application, we implemented <strong>Fail-Open</strong>: a temporary cache outage will degrade DDoS protection slightly, but guarantees 100% availability for legitimate users.
+    </p>
+  </div>
+
+  <div class="footer">
+    PulseLink Telemetry Platform — Master Study & Build Series • Day 5 Complete
+  </div>
+
+</body>
+</html>

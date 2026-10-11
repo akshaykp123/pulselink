@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PulseLink — Day 2: The Shortening Engine (Base62) Interview Prep</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 16mm;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      line-height: 1.6;
+      background-color: #ffffff;
+      padding: 0;
+      margin: 0;
+      font-size: 13.5px;
+    }
+
+    .header {
+      border-bottom: 2px solid #10b981;
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+    }
+
+    .badge {
+      display: inline-block;
+      background-color: #d1fae5;
+      color: #065f46;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 4px 0 6px 0;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .recap-box {
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #10b981;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .recap-box h3 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #065f46;
+    }
+
+    .recap-box ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .recap-box li {
+      margin-bottom: 4px;
+      color: #334155;
+    }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+      background-color: #ffffff;
+    }
+
+    .q-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 6px 0;
+    }
+
+    .q-goal {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #047857;
+      background-color: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .answer {
+      color: #334155;
+      margin: 0;
+    }
+
+    .answer strong {
+      color: #0f172a;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 12px;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 1.5px 5px;
+      border-radius: 4px;
+    }
+
+    pre {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 11.5px;
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="badge">Master Interview Prep</span>
+    <h1>Day 2: The Shortening Engine (Base62) Guide</h1>
+    <p class="subtitle">PulseLink — High-Throughput URL Shortener & Real-Time Telemetry Platform (Fresher Edition)</p>
+  </div>
+
+  <div class="recap-box">
+    <h3>📌 What We Built in Day 2:</h3>
+    <ul>
+      <li><strong>Base62 Encoding Engine:</strong> Implemented mathematical radix conversion using <code>BigInt</code> across 62 URL-safe alphanumeric characters (<code>0-9</code>, <code>a-z</code>, <code>A-Z</code>) producing 56.8+ billion unique 6-character links with zero collisions.</li>
+      <li><strong>PostgreSQL Connection Pool:</strong> Configured <code>pg.Pool</code> with reusable connections and learned about Lazy Connection Initialization.</li>
+      <li><strong>Core REST API:</strong> Created <code>POST /api/urls</code> for shortening with vanity slug support, and <code>GET /:code</code> for lightning-fast HTTP 302 redirects.</li>
+    </ul>
+  </div>
+
+  <!-- Q1 -->
+  <div class="card">
+    <div class="q-title">Q1: What is Base62 encoding, and why do URL shorteners use it instead of Base64 or Hexadecimal?</div>
+    <div class="q-goal">Interviewer's Goal: Tests understanding of URL-safe character sets and compact encoding.</div>
+    <p class="answer">
+      <strong>Base62</strong> uses 62 alphanumeric characters: digits <code>0-9</code> (10), lowercase <code>a-z</code> (26), and uppercase <code>A-Z</code> (26).<br><br>
+      We use Base62 because all 62 characters are completely <strong>URL-safe</strong>. Base64 includes special symbols like <code>+</code> and <code>/</code>, which have reserved syntactic meanings in URLs and require percent-encoding (e.g. <code>%2F</code>), breaking links or causing formatting issues. Hexadecimal (Base16) uses only 16 characters, resulting in significantly longer, less compact strings.
+    </p>
+  </div>
+
+  <!-- Q2 -->
+  <div class="card">
+    <div class="q-title">Q2: Why not just use MD5, SHA-256, or random strings? What is the Hash Collision problem?</div>
+    <div class="q-goal">Interviewer's Goal: Tests algorithmic reasoning, hashing limitations, and database efficiency.</div>
+    <p class="answer">
+      Random strings or truncated cryptographic hashes (like MD5 or SHA-256) inevitably suffer from <strong>Hash Collisions</strong> due to the Birthday Paradox as the dataset expands. To resolve collisions, the server must repeatedly query the database (<code>SELECT id FROM urls WHERE short_code = ...</code>) to verify uniqueness before inserting, causing major performance bottlenecks.<br><br>
+      Base62 converts the database's auto-incrementing Primary Key ID. Because each database ID is guaranteed to be strictly unique, <strong>Base62 guarantees mathematically zero collisions with zero database lookup overhead</strong>.
+    </p>
+  </div>
+
+  <!-- Q3 -->
+  <div class="card">
+    <div class="q-title">Q3: How many unique 6-character short codes can Base62 produce? Walk me through the math.</div>
+    <div class="q-goal">Interviewer's Goal: Tests combinatorial arithmetic and capacity planning.</div>
+    <p class="answer">
+      With 6 character positions and 62 possible characters per position, the total capacity is:<br>
+      <code>62⁶ = 62 × 62 × 62 × 62 × 62 × 62 = 56,800,235,584</code><br><br>
+      That is over <strong>56.8 billion</strong> unique links with just 6 characters. Even if the service generated 1,000 new links every second around the clock, it would take nearly 1.8 years of continuous generation to exhaust the 6-character space.
+    </p>
+  </div>
+
+  <!-- Q4 -->
+  <div class="card">
+    <div class="q-title">Q4: Why did we use BigInt in base62.js instead of standard JavaScript Number?</div>
+    <div class="q-goal">Interviewer's Goal: Tests deep JavaScript runtime knowledge regarding numeric precision.</div>
+    <p class="answer">
+      Standard JavaScript numbers are IEEE 754 double-precision floating-point numbers. Their maximum safe integer (<code>Number.MAX_SAFE_INTEGER</code>) is <code>2⁵³ - 1</code> (≈ <code>9.007 × 10¹⁵</code>).<br><br>
+      Our PostgreSQL database uses <code>BIGSERIAL</code> (a 64-bit signed integer supporting up to <code>9 × 10¹⁸</code>). If a database ID exceeds <code>2⁵³</code>, standard JavaScript numbers will silently round and corrupt the value. Using <code>BigInt</code> guarantees exact integer arithmetic on arbitrary-precision 64-bit numbers without loss of precision.
+    </p>
+  </div>
+
+  <!-- Q5 -->
+  <div class="card">
+    <div class="q-title">Q5: What is the difference between an HTTP 301 and an HTTP 302 redirect? Why do URL shorteners use 302?</div>
+    <div class="q-goal">Interviewer's Goal: Essential system design question regarding HTTP caching vs telemetry tracking.</div>
+    <p class="answer">
+      An <strong>HTTP 301 (Moved Permanently)</strong> tells the client browser to cache the target URL locally in browser memory forever. Subsequent visits bypass our backend entirely—making it <strong>impossible to record click telemetry or analytics</strong>!<br><br>
+      An <strong>HTTP 302 (Found / Temporary Redirect)</strong> instructs the browser to redirect immediately but prevents the browser from caching the response. Every click hits our server, enabling complete click telemetry capture (Country, Device, Referrer, Timestamp) on every visit.
+    </p>
+  </div>
+
+  <!-- Q6 -->
+  <div class="card">
+    <div class="q-title">Q6: What is a Database Connection Pool (pg.Pool), and why is it better than pg.Client?</div>
+    <div class="q-goal">Interviewer's Goal: Tests knowledge of TCP latency, resource contention, and scalability.</div>
+    <p class="answer">
+      Establishing a fresh database connection requires TCP handshakes, SSL handshakes, and authentication negotiation, taking 30–50ms. Opening a new connection per HTTP request (<code>pg.Client</code>) would quickly exhaust PostgreSQL's <code>max_connections</code> limit under concurrent traffic and cause server crashes.<br><br>
+      A <strong>Connection Pool</strong> maintains a set of reusable, pre-warmed connections. Requests borrow an available connection in under 0.1ms, execute their query, and return it to the pool immediately.
+    </p>
+  </div>
+
+  <!-- Q7 -->
+  <div class="card">
+    <div class="q-title">Q7: What does "Lazy Initialization" mean regarding pg.Pool?</div>
+    <div class="q-goal">Interviewer's Goal: Tests understanding of library lifecycle and memory management.</div>
+    <p class="answer">
+      When <code>new Pool()</code> is declared in Node.js, it does not immediately connect all 20 sockets to PostgreSQL. It waits "lazily" until the application actually executes its first query (e.g. <code>pool.query</code>). Only when traffic demands a connection does it establish the socket. This ensures idle applications do not hold unnecessary database connections open.
+    </p>
+  </div>
+
+  <!-- Q8 -->
+  <div class="card">
+    <div class="q-title">Q8: In POST /api/urls, why did we first insert a row and then update it with the Base62 code?</div>
+    <div class="q-goal">Interviewer's Goal: Tests understanding of database sequences and auto-increment mechanics.</div>
+    <p class="answer">
+      In PostgreSQL, an auto-incrementing ID is generated by a database sequence upon row insertion. To know the ID so we can encode it into Base62, we first insert the record to obtain the generated <code>id</code>, calculate the Base62 code in application memory, and update the row.<br><br>
+      In extreme high-throughput systems, an alternative pattern is calling <code>SELECT nextval('urls_id_seq')</code> to reserve the sequence number beforehand, allowing a single combined <code>INSERT</code> statement.
+    </p>
+  </div>
+
+  <!-- Q9 -->
+  <div class="card">
+    <div class="q-title">Q9: How do Custom Vanity Slugs (e.g., /my-resume) work alongside auto-generated Base62 codes?</div>
+    <div class="q-goal">Interviewer's Goal: Tests schema constraints, conflict resolution, and indexed routing.</div>
+    <p class="answer">
+      Our <code>urls</code> table includes both <code>short_code</code> and <code>custom_alias</code> columns with <code>UNIQUE</code> constraints. When a user requests a custom slug, the API verifies that the alias is not already in use as either a custom slug or an existing Base62 code.<br><br>
+      In <code>GET /:code</code>, our query checks <code>WHERE short_code = $1 OR custom_alias = $1</code>, leveraging our B-Tree index to resolve both types uniformly in under 2ms.
+    </p>
+  </div>
+
+  <!-- Q10 -->
+  <div class="card">
+    <div class="q-title">Q10: Why did we update clicks_count asynchronously without await in GET /:code?</div>
+    <div class="q-goal">Interviewer's Goal: Tests understanding of latency optimization and event-loop non-blocking I/O.</div>
+    <p class="answer">
+      In <code>GET /:code</code>, the top priority is redirect latency (&lt; 25ms). The user should never wait for an internal analytics counter update before being redirected.<br><br>
+      By executing <code>pool.query('UPDATE urls SET clicks_count...')</code> without <code>await</code>, Express immediately sends the HTTP 302 redirect response while PostgreSQL processes the counter increment in the background without blocking the HTTP response.
+    </p>
+  </div>
+
+  <div class="footer">
+    PulseLink Telemetry Platform — Master Study & Build Series • Day 2 Complete
+  </div>
+
+</body>
+</html>
