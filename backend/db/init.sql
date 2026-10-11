@@ -56,18 +56,3 @@ CREATE INDEX IF NOT EXISTS idx_clicks_url_country ON clicks(url_id, country);
 CREATE INDEX IF NOT EXISTS idx_clicks_url_device ON clicks(url_id, device_type);
 
 
---Sample Seed Data (For testing right away!)
-
-
-INSERT INTO users (email, name)
-VALUES ('demo@pulselink.dev', 'Demo Engineer')
-ON CONFLICT (email) DO NOTHING;
-
-INSERT INTO urls (short_code, original_url, user_id, clicks_count)
-VALUES ('gh2026', 'https://github.com', 1, 1)
-ON CONFLICT (short_code) DO NOTHING;
-
-INSERT INTO clicks (url_id, country, city, device_type, browser, os, referrer)
-SELECT id, 'India', 'Bengaluru', 'Desktop', 'Chrome', 'Windows', 'linkedin.com'
-FROM urls WHERE short_code = 'gh2026'
-  AND NOT EXISTS (SELECT 1 FROM clicks WHERE url_id = (SELECT id FROM urls WHERE short_code = 'gh2026'));

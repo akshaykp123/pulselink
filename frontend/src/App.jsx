@@ -8,7 +8,13 @@ import { ExternalLink, RefreshCw } from 'lucide-react';
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export default function App() {
-  const [activeCode, setActiveCode] = useState('gh2026');
+    const [activeCode, setActiveCode] = useState(() => {
+    try {
+      return localStorage.getItem('pulselink_active_code') || '';
+    } catch {
+      return '';
+    }
+  });
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -18,9 +24,9 @@ export default function App() {
   const [recentCodes, setRecentCodes] = useState(() => {
     try {
       const saved = localStorage.getItem('pulselink_recent_codes');
-      return saved ? JSON.parse(saved) : ['gh2026'];
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return ['gh2026'];
+      return [];
     }
   });
 
@@ -40,7 +46,7 @@ export default function App() {
     }
   };
 
-  // 2. Fetch all recent links from the PostgreSQL database on startup
+    // 2. Fetch all recent links from PostgreSQL and automatically load the latest created link
   const fetchRecentUrls = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/urls`);
@@ -48,17 +54,24 @@ export default function App() {
       const data = await res.json();
       const dbCodes = data.map((u) => u.short_code);
       if (dbCodes.length > 0) {
-        setRecentCodes((prev) => {
-          const merged = Array.from(new Set([...dbCodes, ...prev]));
-          localStorage.setItem('pulselink_recent_codes', JSON.stringify(merged));
-          return merged;
-        });
+        // Sync recent codes directly with live database (removes deleted gh2026 chip)
+        setRecentCodes(dbCodes);
+        localStorage.setItem('pulselink_recent_codes', JSON.stringify(dbCodes));
+
+        // Load the last inspected link or default to the most recent link created (index 0)
+        const savedCode = localStorage.getItem('pulselink_active_code');
+        const codeToLoad = savedCode && dbCodes.includes(savedCode) ? savedCode : dbCodes[0];
+        fetchAnalytics(codeToLoad);
+      } else {
+        // When database has 0 links, clear analytics gracefully instead of looking for gh2026
+        setActiveCode('');
+        setAnalytics(null);
       }
     } catch (err) {
       console.warn('Could not fetch links from backend:', err.message);
     }
   };
-
+    
   // 3. Fetch telemetry analytics for a specific short code
   const fetchAnalytics = async (code, silent = false) => {
     if (!code) return;
@@ -70,6 +83,7 @@ export default function App() {
       const data = await res.json();
       setAnalytics(data);
       setActiveCode(code);
+      localStorage.setItem('pulselink_active_code', code); // 👈 Remembers current link
 
       // Persist to recent list and localStorage
       setRecentCodes((prev) => {
@@ -87,8 +101,7 @@ export default function App() {
 
   // Initial load
   useEffect(() => {
-    fetchRecentUrls();
-    fetchAnalytics('gh2026');
+    fetchRecentUrls(); // 👈 Loads the latest link automatically!
   }, []);
 
   // Live Auto-Refresh polling (every 3 seconds when toggled on)
