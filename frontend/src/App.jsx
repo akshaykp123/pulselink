@@ -37,41 +37,14 @@ export default function App() {
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await Promise.all([
-        fetchAnalytics(activeCode, true),
-        fetchRecentUrls()
-      ]);
+      if (activeCode) {
+        await fetchAnalytics(activeCode, true);
+      }
     } finally {
       setTimeout(() => setIsRefreshing(false), 450);
     }
   };
 
-    // 2. Fetch all recent links from PostgreSQL and automatically load the latest created link
-  const fetchRecentUrls = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/urls`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const dbCodes = data.map((u) => u.short_code);
-      if (dbCodes.length > 0) {
-        // Sync recent codes directly with live database (removes deleted gh2026 chip)
-        setRecentCodes(dbCodes);
-        localStorage.setItem('pulselink_recent_codes', JSON.stringify(dbCodes));
-
-        // Load the last inspected link or default to the most recent link created (index 0)
-        const savedCode = localStorage.getItem('pulselink_active_code');
-        const codeToLoad = savedCode && dbCodes.includes(savedCode) ? savedCode : dbCodes[0];
-        fetchAnalytics(codeToLoad);
-      } else {
-        // When database has 0 links, clear analytics gracefully instead of looking for gh2026
-        setActiveCode('');
-        setAnalytics(null);
-      }
-    } catch (err) {
-      console.warn('Could not fetch links from backend:', err.message);
-    }
-  };
-    
   // 3. Fetch telemetry analytics for a specific short code
   const fetchAnalytics = async (code, silent = false) => {
     if (!code) return;
@@ -99,9 +72,22 @@ export default function App() {
     }
   };
 
-  // Initial load
+     // Initial load: Load the latest link created on THIS specific device from localStorage
   useEffect(() => {
-    fetchRecentUrls(); // 👈 Loads the latest link automatically!
+    try {
+      const savedCodes = JSON.parse(localStorage.getItem('pulselink_recent_codes') || '[]');
+      const savedActive = localStorage.getItem('pulselink_active_code');
+      const codeToLoad = savedActive && savedCodes.includes(savedActive) ? savedActive : savedCodes[0];
+      if (codeToLoad) {
+        fetchAnalytics(codeToLoad);
+      } else {
+        setActiveCode('');
+        setAnalytics(null);
+      }
+    } catch {
+      setActiveCode('');
+      setAnalytics(null);
+    }
   }, []);
 
   // Live Auto-Refresh polling (every 3 seconds when toggled on)
@@ -133,12 +119,11 @@ export default function App() {
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 flex flex-col gap-4">
         {/* URL Shortener toolbar */}
-        <UrlShortener
+                <UrlShortener
           activeCode={activeCode}
           recentCodes={recentCodes}
           onSelectCode={(code) => fetchAnalytics(code)}
           onUrlCreated={(code) => {
-            fetchRecentUrls();
             fetchAnalytics(code);
           }}
           apiBase={API_BASE}
