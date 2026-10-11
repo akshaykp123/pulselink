@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, ExternalLink, QrCode, Loader2, AlertCircle, X, Link as LinkIcon } from 'lucide-react';
+import { Copy, Check, ExternalLink, QrCode, Loader2, AlertCircle, X, Link as LinkIcon, Search } from 'lucide-react';
 
 export default function UrlShortener({ 
   onUrlCreated, 
@@ -61,61 +61,64 @@ export default function UrlShortener({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-xs divide-y divide-slate-100">
+    <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs divide-y divide-slate-100 overflow-hidden">
       {/* Row 1: URL input form */}
-      <form onSubmit={handleShorten} className="flex items-center">
+      <form onSubmit={handleShorten} className="flex flex-col sm:flex-row items-stretch sm:items-center">
         {/* Long URL input */}
-        <div className="flex flex-1 items-center gap-2.5 px-4 py-3 border-r border-slate-100 min-w-0">
-          <LinkIcon className="w-4 h-4 text-slate-400 shrink-0" />
+        <div className="flex flex-1 items-center gap-3 px-4 sm:px-5 py-3.5 border-b sm:border-b-0 sm:border-r border-slate-100 min-w-0">
+          <LinkIcon className="w-5 h-5 text-slate-400 shrink-0" />
           <input
             type="url"
             required
-            placeholder="Paste a long URL to shorten (e.g. https://github.com/torvalds/linux)…"
+            placeholder="Paste a long URL (e.g. https://github.com/torvalds/linux)…"
             value={originalUrl}
             onChange={(e) => setOriginalUrl(e.target.value)}
-            className="flex-1 bg-transparent text-xs sm:text-sm text-slate-800 outline-none placeholder:text-slate-400 min-w-0"
+            className="flex-1 bg-transparent text-sm sm:text-base text-slate-900 outline-none placeholder:text-slate-400 min-w-0 font-normal"
           />
         </div>
 
         {/* Custom slug */}
-        <div className="flex items-center gap-1.5 px-3 sm:px-4 py-3 border-r border-slate-100">
-          <span className="text-xs text-slate-300 shrink-0 select-none font-mono">/</span>
+        <div className="flex items-center gap-2 px-4 sm:px-5 py-3.5 border-b sm:border-b-0 sm:border-r border-slate-100 shrink-0">
+          <span className="text-sm text-slate-400 select-none font-mono">/</span>
           <input
             type="text"
             placeholder="custom-slug"
             value={customAlias}
             onChange={(e) => setCustomAlias(e.target.value)}
-            className="w-20 sm:w-28 bg-transparent text-xs sm:text-sm text-slate-700 outline-none placeholder:text-slate-400 font-mono"
+            className="w-24 sm:w-32 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400 font-mono"
           />
         </div>
 
-        {/* Submit */}
+        {/* Submit button */}
         <button
           type="submit"
           disabled={isShortening}
-          className="flex items-center gap-1.5 px-4 sm:px-5 py-3 text-xs sm:text-sm font-semibold text-blue-600 hover:bg-blue-50 disabled:opacity-50 transition cursor-pointer shrink-0"
+          className="flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition cursor-pointer shrink-0"
         >
-          {isShortening ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-          Shorten →
+          {isShortening ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          <span>Shorten Link →</span>
         </button>
       </form>
 
       {/* Row 2: Inspect Search + Scrollable Chips + Result Banner */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 flex-wrap min-h-[38px]">
-        <span className="text-xs text-slate-500 font-semibold shrink-0">Inspect:</span>
+      <div className="flex items-center gap-3 px-4 sm:px-5 py-3 flex-wrap min-h-[46px] bg-slate-50/50">
+        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide shrink-0">Inspect:</span>
 
         {/* 1. Quick search for ANY short code */}
-        <form onSubmit={handleInspectSubmit} className="flex items-center gap-1 shrink-0">
-          <input
-            type="text"
-            placeholder="code…"
-            value={searchCode}
-            onChange={(e) => setSearchCode(e.target.value)}
-            className="w-16 sm:w-20 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-xs font-mono text-slate-700 outline-none focus:border-blue-500"
-          />
+        <form onSubmit={handleInspectSubmit} className="flex items-center gap-1.5 shrink-0">
+          <div className="relative flex items-center">
+            <span className="absolute left-2 text-xs text-slate-400 font-mono select-none">/</span>
+            <input
+              type="text"
+              placeholder="code"
+              value={searchCode}
+              onChange={(e) => setSearchCode(e.target.value)}
+              className="w-20 sm:w-24 bg-white border border-slate-200 rounded-lg pl-5 pr-2 py-1 text-xs font-mono text-slate-800 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs"
+            />
+          </div>
           <button
             type="submit"
-            className="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium cursor-pointer transition"
+            className="px-3 py-1 text-xs bg-slate-200/80 hover:bg-slate-300 text-slate-700 rounded-lg font-bold cursor-pointer transition shadow-2xs"
           >
             Go
           </button>
@@ -127,10 +130,10 @@ export default function UrlShortener({
             <button
               key={code}
               onClick={() => onSelectCode && onSelectCode(code)}
-              className={`px-2 py-1 rounded-md text-xs font-mono shrink-0 transition cursor-pointer border ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold shrink-0 transition cursor-pointer border ${
                 activeCode === code
-                  ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-xs'
-                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:text-slate-900 shadow-2xs'
               }`}
             >
               /{code}
@@ -140,17 +143,17 @@ export default function UrlShortener({
 
         {/* Generated short URL result banner */}
         {createdUrl && (
-          <div className="ml-auto flex items-center gap-2 shrink-0 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-1">
-            <span className="text-xs font-mono text-blue-900 font-semibold truncate max-w-[200px]">{createdUrl.shortUrl}</span>
-            <div className="flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-2.5 shrink-0 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+            <span className="text-xs font-mono text-blue-900 font-bold truncate max-w-[220px]">{createdUrl.shortUrl}</span>
+            <div className="flex items-center gap-1 border-l border-blue-200 pl-2">
               <button onClick={() => copyLink(createdUrl.shortUrl)} title="Copy" className="p-1 text-blue-600 hover:text-blue-800 transition cursor-pointer">
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
               </button>
               <a href={createdUrl.shortUrl} target="_blank" rel="noreferrer" title="Visit" className="p-1 text-blue-600 hover:text-blue-800 transition">
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-4 h-4" />
               </a>
               <button onClick={() => setShowQR(true)} title="QR Code" className="p-1 text-blue-600 hover:text-blue-800 transition cursor-pointer">
-                <QrCode className="w-3.5 h-3.5" />
+                <QrCode className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -158,8 +161,8 @@ export default function UrlShortener({
 
         {/* Inline error */}
         {error && (
-          <div className="ml-auto flex items-center gap-1 text-xs text-red-600 shrink-0 bg-red-50 px-2 py-1 rounded-md border border-red-200">
-            <AlertCircle className="w-3.5 h-3.5" />
+          <div className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-red-600 shrink-0 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">
+            <AlertCircle className="w-4 h-4" />
             {error}
           </div>
         )}
@@ -167,18 +170,18 @@ export default function UrlShortener({
 
       {/* QR Modal */}
       {showQR && createdUrl && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl text-center space-y-4 max-w-xs w-full">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl text-center space-y-4 max-w-xs w-full">
             <div className="flex items-center justify-between">
               <span className="text-sm font-bold text-slate-900">QR Code</span>
               <button onClick={() => setShowQR(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer transition">
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 inline-block">
-              <QRCodeSVG value={createdUrl.shortUrl} size={140} />
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 inline-block shadow-inner">
+              <QRCodeSVG value={createdUrl.shortUrl} size={160} />
             </div>
-            <p className="text-xs text-slate-600 font-mono truncate">{createdUrl.shortUrl}</p>
+            <p className="text-xs text-slate-600 font-mono truncate font-semibold">{createdUrl.shortUrl}</p>
           </div>
         </div>
       )}

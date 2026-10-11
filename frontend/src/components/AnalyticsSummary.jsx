@@ -6,35 +6,39 @@ export default function AnalyticsSummary({ summary, countries, devices }) {
       label: 'Total Clicks',
       value: summary?.totalClicks ?? 0,
       sub: 'All time',
+      color: 'text-blue-600',
     },
     {
       label: 'Unique Visitors',
       value: summary?.uniqueVisitors ?? 0,
       sub: 'By IP hash',
+      color: 'text-indigo-600',
     },
     {
       label: 'Top Location',
       value: countries?.[0]?.country || 'No Data',
       sub: countries?.[0]?.clicks ? `${countries[0].clicks} clicks` : '—',
+      color: 'text-emerald-600',
     },
     {
       label: 'Primary Device',
       value: devices?.[0]?.device_type || 'No Data',
       sub: devices?.[0]?.clicks ? `${devices[0].clicks} hits` : '—',
+      color: 'text-amber-600',
     },
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-xs flex divide-x divide-slate-100 overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 overflow-hidden">
       {stats.map((s, i) => (
-        <div key={i} className="flex-1 min-w-0 px-5 sm:px-6 py-4">
-          <p className="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate mb-1">
+        <div key={i} className="px-5 sm:px-6 py-4 sm:py-5 min-w-0">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider truncate mb-1">
             {s.label}
           </p>
-          <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight truncate tabular-nums">
+          <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-none truncate tabular-nums my-1">
             {s.value}
           </p>
-          <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+          <p className="text-xs text-slate-400 mt-1 truncate">
             {s.sub}
           </p>
         </div>
