@@ -15,10 +15,8 @@ export function parseClickTelemetry(ip, userAgent = '', referer = 'Direct') {
     ? '127.0.0.1'
     : rawClean;
 
-  // 1. Privacy: Composite SHA-256 hash (IP + User-Agent)
-  // Distinguishes 2 devices on the same Wi-Fi while consolidating repeat clicks
-  const visitorIdentifier = `${cleanIp}|${userAgent}`;
-  const ipHash = crypto.createHash('sha256').update(visitorIdentifier).digest('hex');
+    // 1. Privacy: SHA-256 hash of IP address only
+  const ipHash = crypto.createHash('sha256').update(cleanIp).digest('hex');
 
   // 2. Geo-Location Lookup via geoip-lite (offline lookup, sub-0.1ms)
   let country = 'Unknown';
