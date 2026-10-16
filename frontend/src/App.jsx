@@ -51,11 +51,12 @@ export default function App() {
     if (!silent) setIsLoading(true);
     setError('');
     try {
+      setActiveCode(code);
       const res = await fetch(`${API_BASE}/api/urls/${code}/analytics`);
       if (!res.ok) throw new Error('Short code not found');
       const data = await res.json();
       setAnalytics(data);
-      setActiveCode(code);
+      
       localStorage.setItem('pulselink_active_code', code); // 👈 Remembers current link
 
       // Persist to recent list and localStorage
