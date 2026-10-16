@@ -10,7 +10,11 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 export default function App() {
     const [activeCode, setActiveCode] = useState(() => {
     try {
-      return localStorage.getItem('pulselink_active_code') || '';
+      const lastCreated = localStorage.getItem('pulselink_last_created_code');
+      if (lastCreated) return lastCreated;
+      const saved = localStorage.getItem('pulselink_recent_codes');
+      const codes = saved ? JSON.parse(saved) : [];
+      return codes[0] || '';
     } catch {
       return '';
     }
@@ -48,19 +52,22 @@ export default function App() {
   // 3. Fetch telemetry analytics for a specific short code
   const fetchAnalytics = async (code, silent = false) => {
     if (!code) return;
+    
+    // Optimistic UI: Immediately highlight chip and header (0ms visual feedback)
+    setActiveCode(code);
     if (!silent) setIsLoading(true);
     setError('');
+
     try {
       const res = await fetch(`${API_BASE}/api/urls/${code}/analytics`);
       if (!res.ok) throw new Error('Short code not found');
       const data = await res.json();
       setAnalytics(data);
-      setActiveCode(code);
-      localStorage.setItem('pulselink_active_code', code); // 👈 Remembers current link
 
-      // Persist to recent list and localStorage
+      // Persist to recent list if new
       setRecentCodes((prev) => {
-        const updated = prev.includes(code) ? prev : [code, ...prev];
+        if (prev.includes(code)) return prev;
+        const updated = [code, ...prev];
         localStorage.setItem('pulselink_recent_codes', JSON.stringify(updated));
         return updated;
       });
@@ -72,14 +79,13 @@ export default function App() {
     }
   };
 
-     // Initial load: Load the latest link created on THIS specific device from localStorage
+  // Initial load: Always load the LAST CREATED link on page refresh
   useEffect(() => {
     try {
       const savedCodes = JSON.parse(localStorage.getItem('pulselink_recent_codes') || '[]');
-      const savedActive = localStorage.getItem('pulselink_active_code');
-      const codeToLoad = savedActive && savedCodes.includes(savedActive) ? savedActive : savedCodes[0];
-      if (codeToLoad) {
-        fetchAnalytics(codeToLoad);
+      const lastCreated = localStorage.getItem('pulselink_last_created_code') || savedCodes[0];
+      if (lastCreated) {
+        fetchAnalytics(lastCreated);
       } else {
         setActiveCode('');
         setAnalytics(null);
@@ -124,6 +130,12 @@ export default function App() {
           recentCodes={recentCodes}
           onSelectCode={(code) => fetchAnalytics(code)}
           onUrlCreated={(code) => {
+            localStorage.setItem('pulselink_last_created_code', code);
+            setRecentCodes((prev) => {
+              const updated = [code, ...prev.filter((c) => c !== code)];
+              localStorage.setItem('pulselink_recent_codes', JSON.stringify(updated));
+              return updated;
+            });
             fetchAnalytics(code);
           }}
           apiBase={API_BASE}
