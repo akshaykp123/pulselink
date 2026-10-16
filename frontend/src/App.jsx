@@ -52,7 +52,6 @@ export default function App() {
   // 3. Fetch telemetry analytics for a specific short code
   const fetchAnalytics = async (code, silent = false) => {
     if (!code) return;
-    
     // Optimistic UI: Immediately highlight chip and header (0ms visual feedback)
     setActiveCode(code);
     if (!silent) setIsLoading(true);
