@@ -48,10 +48,11 @@ export default function App() {
   // 3. Fetch telemetry analytics for a specific short code
   const fetchAnalytics = async (code, silent = false) => {
     if (!code) return;
+    setActiveCode(code);
+    localStorage.setItem('pulselink_active_code', code);
     if (!silent) setIsLoading(true);
     setError('');
     try {
-      setActiveCode(code);
       const res = await fetch(`${API_BASE}/api/urls/${code}/analytics`);
       if (!res.ok) throw new Error('Short code not found');
       const data = await res.json();
