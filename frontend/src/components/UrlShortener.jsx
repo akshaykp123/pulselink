@@ -26,6 +26,7 @@ export default function UrlShortener({
     setError('');
     try {
       // Send original long URL and optional custom alias to backend API
+      // If customAlias is empty, passing undefined omits it from JSON so backend auto-generates Base62
       const res = await fetch(`${apiBase}/api/urls`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -33,7 +34,7 @@ export default function UrlShortener({
       });
       const data = await res.json();
       if (!res.ok) {
-        // If rate limited by Redis, show retry countdown
+        // If rate limited by Redis (5 requests per 60s), show retry countdown
         if (res.status === 429) throw new Error(`Rate limited — wait ${data.retryAfterSeconds || 60}s`);
         throw new Error(data.error || 'Failed to shorten');
       }
@@ -52,6 +53,7 @@ export default function UrlShortener({
   // Search/inspect an existing short code directly
   const handleInspectSubmit = (e) => {
     e.preventDefault();
+    // Strip leading slash if user typed "/gh2026" instead of "gh2026"
     const cleanCode = searchCode.trim().replace(/^\//, '');
     if (cleanCode && onSelectCode) {
       onSelectCode(cleanCode);

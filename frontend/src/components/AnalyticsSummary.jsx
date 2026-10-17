@@ -13,7 +13,7 @@ export default function AnalyticsSummary({ summary, countries, devices }) {
     {
       label: 'Unique Visitors',
       value: summary?.uniqueVisitors ?? 0,
-      sub: 'By IP hash',
+      sub: 'By IP hash', // Cryptographic uniqueness: counts distinct SHA-256 IP hashes without storing plain personal data
       color: 'text-indigo-600',
     },
     {
@@ -31,7 +31,7 @@ export default function AnalyticsSummary({ summary, countries, devices }) {
   ];
 
   return (
-    // Responsive grid: 4 columns with vertical dividers on desktop, 2x2 grid on mobile
+    // Responsive grid: 4 columns with vertical dividers on desktop, wraps into a clean 2x2 grid on mobile devices
     <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 overflow-hidden">
       {stats.map((s, i) => (
         <div key={i} className="px-5 sm:px-6 py-4 sm:py-5 min-w-0">

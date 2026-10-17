@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Dedicated Redis connection for BullMQ worker
+// Why maxRetriesPerRequest: null is required by BullMQ so blocking Redis commands (BRPOPLPUSH) wait without timing out
 const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
 });

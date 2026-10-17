@@ -16,14 +16,17 @@ export function parseClickTelemetry(ip, userAgent = '', referer = 'Direct') {
     ? '127.0.0.1'
     : rawClean;
 
-  // 2. Hash the IP with SHA-256 for privacy (we never store plain IP addresses)
+  // 2. Hash the IP with SHA-256 for privacy (GDPR compliance)
+  // Why SHA-256 IP hash: Storing raw IP addresses violates privacy regulations. Hashing produces a 64-character anonymous fingerprint so we can calculate unique visitors without saving personal data
   const ipHash = crypto.createHash('sha256').update(cleanIp).digest('hex');
 
   // 3. Find visitor country and city using geoip-lite offline database
+  // Why geoip-lite: Uses an in-memory binary database (<0.1ms lookup) instead of slow third-party HTTP APIs that can fail or rate-limit us
   let country = 'Unknown';
   let city = 'Unknown';
 
-  // Check if testing locally on development machine
+  // Development fallback: Loopback IPs (127.0.0.1 or ::1) have no geographical location in GeoIP
+  // We explicitly label them as 'Localhost (Dev)' so developers see immediate chart data during testing
   const isLocalhost = !ip || ip === '::1' || ip === '127.0.0.1' || ip.startsWith('::ffff:127.0.0.1');
 
   if (isLocalhost) {

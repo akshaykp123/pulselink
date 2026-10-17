@@ -9,6 +9,7 @@ export function rateLimiter(maxRequests = 5, windowSeconds = 60) {
       const key = `ratelimit:${req.baseUrl || req.path}:${ip}`;
 
       // 2. Atomically increment the request count in Redis RAM
+      // Why redis.incr(): Redis operations are atomic, preventing race conditions if multiple requests arrive at the exact same millisecond
       const requests = await redis.incr(key);
 
       // 3. If this is the first request in the window, set the expiration timer
@@ -24,7 +25,8 @@ export function rateLimiter(maxRequests = 5, windowSeconds = 60) {
       res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - requests));
       res.setHeader('X-RateLimit-Reset', ttl);
 
-      // 6. If the client exceeded the allowed limit: BLOCK THEM!
+      // 6. If the client exceeded the allowed limit: BLOCK THEM with HTTP 429!
+      // HTTP 429 Too Many Requests: Informs bots and clients they are throttled and attaches Retry-After header
       if (requests > maxRequests) {
         console.warn(`🚨 [RATE LIMIT] Blocked IP ${ip} on ${req.originalUrl} (${requests}/${maxRequests} in ${windowSeconds}s)`);
         
@@ -39,7 +41,7 @@ export function rateLimiter(maxRequests = 5, windowSeconds = 60) {
       // If under the limit: Let the request proceed to the route handler!
       next();
     } catch (error) {
-      // Fail-Open strategy: If Redis has an issue, log error and allow traffic so users aren't blocked
+      // Fail-Open Resilience: If Redis ever goes down or network lags, allow traffic through instead of crashing the site for legitimate users
       console.error('Rate limiter error:', error);
       next();
     }

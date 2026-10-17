@@ -26,7 +26,8 @@ export default function AnalyticsCharts({ timeline = [], countries = [], devices
   // Current active breakdown tab (Countries, Devices, Browsers, or Referrers)
   const [activeTab, setActiveTab] = useState('Countries');
 
-  // Normalize data array so every category produces a standard { label, count } object for the bar chart
+  // Why data normalization: Each tab has different SQL column names (country, device_type, browser, referrer).
+  // We map them into uniform [{ label, count }] objects so a single Recharts <BarChart> component can render all 4 views interchangeably
   const activeList =
     activeTab === 'Countries'
       ? countries.map((c) => ({ label: c.country || 'Unknown', count: Number(c.clicks) }))
@@ -36,7 +37,7 @@ export default function AnalyticsCharts({ timeline = [], countries = [], devices
       ? browsers.map((b) => ({ label: b.browser || 'Unknown', count: Number(b.clicks) }))
       : referrers.map((r) => ({ label: r.referrer || 'Direct', count: Number(r.clicks) }));
 
-  // Calculate sum of clicks in the selected tab to compute percentages for tooltips
+  // Calculate sum of clicks in the selected tab to compute relative percentage share in the tooltip
   const totalListClicks = activeList.reduce((acc, curr) => acc + curr.count, 0);
 
   return (
@@ -167,6 +168,7 @@ export default function AnalyticsCharts({ timeline = [], countries = [], devices
           <div className="flex-1 w-full min-h-0 pt-1">
             {activeList.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
+                {/* Why layout="vertical": Places category names on the Y-axis so long text (e.g. 'United States') never overlaps or truncates */}
                 <BarChart
                   data={activeList}
                   layout="vertical"
@@ -186,6 +188,7 @@ export default function AnalyticsCharts({ timeline = [], countries = [], devices
                     width={95}
                     tick={{ fontSize: 11, fill: '#334155', fontWeight: 500 }}
                   />
+                  {/* Tooltip computes dynamic percentage share: (value / totalListClicks) * 100 */}
                   <Tooltip
                     contentStyle={tooltipStyle}
                     cursor={{ fill: '#f8fafc' }}

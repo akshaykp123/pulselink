@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import urlRoutes from './routes/urlRoutes.js';
 import redirectRoutes from './routes/redirectRoutes.js';
 
-// Start background queue worker
+// Import and start background BullMQ queue worker process to consume click events
 import './workers/telemetryWorker.js';
 
 dotenv.config();
@@ -14,7 +14,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Trust proxy headers so we can read real client IPs behind reverse proxies
+// Why trust proxy 1: Tells Express to trust reverse proxies (Nginx, Docker, Cloudflare). Without this, req.ip would always be the internal proxy IP (127.0.0.1) instead of the user IP
 app.set('trust proxy', 1);
 
 // Enable cross-origin requests from the React frontend

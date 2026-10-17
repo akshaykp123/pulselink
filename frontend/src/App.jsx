@@ -8,7 +8,8 @@ import { ExternalLink, RefreshCw, Link as LinkIcon } from 'lucide-react';
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export default function App() {
-  // On first load, default to the last created short link so refreshing brings you back to your newest link
+  // On first load, default to the last created short link
+  // Why pulselink_last_created_code: Decouples inspecting older links from creation history. If you inspect /a and refresh, you return to your latest project link (/e)
   const [activeCode, setActiveCode] = useState(() => {
     try {
       const lastCreated = localStorage.getItem('pulselink_last_created_code');
@@ -56,7 +57,8 @@ export default function App() {
   const fetchAnalytics = async (code, silent = false) => {
     if (!code) return;
 
-    // Optimistic UI: highlight the chip and header immediately (0ms visual response)
+    // Optimistic UI pattern: Highlight the chip and header immediately before network request completes
+    // Eliminates the ~100-200ms pause so clicking chips feels 100% instant to the user
     setActiveCode(code);
     if (!silent) setIsLoading(true);
     setError('');
@@ -107,12 +109,12 @@ export default function App() {
     return () => clearInterval(iv);
   }, [autoRefresh, activeCode]);
 
-  // Test click: trigger a real redirect through Redis cache and BullMQ worker to test the live pipeline
+  // Test click: trigger a real redirect to test the full pipeline (Rate Limiter -> Redis -> BullMQ -> PostgreSQL)
   const handleSimulateClick = async () => {
     setIsSimulating(true);
     try {
       await fetch(`${API_BASE}/${activeCode}`, { method: 'GET', redirect: 'follow' });
-      // Re-fetch analytics shortly after to show the newly logged click
+      // Why 400ms delay: Gives BullMQ background worker enough time to consume the job and write to PostgreSQL before re-fetching
       setTimeout(() => { fetchAnalytics(activeCode, true); setIsSimulating(false); }, 400);
     } catch {
       setIsSimulating(false);
