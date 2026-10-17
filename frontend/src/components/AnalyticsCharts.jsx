@@ -23,8 +23,10 @@ const axisProps = {
 };
 
 export default function AnalyticsCharts({ timeline = [], countries = [], devices = [], browsers = [], referrers = [] }) {
+  // Current active breakdown tab (Countries, Devices, Browsers, or Referrers)
   const [activeTab, setActiveTab] = useState('Countries');
 
+  // Normalize data array so every category produces a standard { label, count } object for the bar chart
   const activeList =
     activeTab === 'Countries'
       ? countries.map((c) => ({ label: c.country || 'Unknown', count: Number(c.clicks) }))
@@ -34,11 +36,13 @@ export default function AnalyticsCharts({ timeline = [], countries = [], devices
       ? browsers.map((b) => ({ label: b.browser || 'Unknown', count: Number(b.clicks) }))
       : referrers.map((r) => ({ label: r.referrer || 'Direct', count: Number(r.clicks) }));
 
+  // Calculate sum of clicks in the selected tab to compute percentages for tooltips
   const totalListClicks = activeList.reduce((acc, curr) => acc + curr.count, 0);
 
   return (
     <>
       <style>{`
+        /* 2-column grid on desktop, single column on mobile */
         .charts-responsive-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;

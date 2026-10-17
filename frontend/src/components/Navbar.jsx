@@ -1,11 +1,12 @@
 import React from 'react';
 import { Activity, RefreshCw } from 'lucide-react';
 
+// Navigation bar with branding and live controls
 export default function Navbar({ autoRefresh, setAutoRefresh, onSimulateClick, isSimulating }) {
   return (
-          <header className="border-b border-slate-200 bg-white sticky top-0 z-50 h-14 flex items-center">
+    <header className="border-b border-slate-200 bg-white sticky top-0 z-50 h-14 flex items-center">
       <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 flex items-center justify-between gap-3 min-w-0">
-        {/* Brand */}
+        {/* Brand logo and title */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-600 block shrink-0 shadow-xs" />
           <span className="text-base font-bold text-slate-900 tracking-tight">PulseLink</span>
@@ -13,9 +14,9 @@ export default function Navbar({ autoRefresh, setAutoRefresh, onSimulateClick, i
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide mr-1 sm:mr-0">Console</span>
         </div>
 
-        {/* Right actions */}
+        {/* Action buttons: live auto-refresh toggle and simulate click */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Live toggle */}
+          {/* Toggle automatic 3-second polling for live telemetry */}
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
             className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer shrink-0 ${
@@ -28,7 +29,7 @@ export default function Navbar({ autoRefresh, setAutoRefresh, onSimulateClick, i
             <span>{autoRefresh ? 'Live (3s)' : 'Live Off'}</span>
           </button>
 
-          {/* Simulate */}
+          {/* Trigger a simulated click to test the Redis and BullMQ pipeline */}
           <button
             onClick={onSimulateClick}
             disabled={isSimulating}

@@ -1,10 +1,6 @@
 import redis from '../config/redis.js';
 
-/**
- * High-performance Redis Rate Limiter Middleware
- * @param {number} maxRequests - Max requests allowed in the time window (e.g., 5)
- * @param {number} windowSeconds - Duration of the window in seconds (e.g., 60)
- */
+// Rate limiter middleware using Redis to track and limit requests per IP
 export function rateLimiter(maxRequests = 5, windowSeconds = 60) {
   return async (req, res, next) => {
     try {

@@ -1,6 +1,8 @@
 import React from 'react';
 
+// Top-level KPI summary strip (Total Clicks, Unique Visitors, Top Country, Primary Device)
 export default function AnalyticsSummary({ summary, countries, devices }) {
+  // Extract key summary metrics for display
   const stats = [
     {
       label: 'Total Clicks',
@@ -29,6 +31,7 @@ export default function AnalyticsSummary({ summary, countries, devices }) {
   ];
 
   return (
+    // Responsive grid: 4 columns with vertical dividers on desktop, 2x2 grid on mobile
     <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 overflow-hidden">
       {stats.map((s, i) => (
         <div key={i} className="px-5 sm:px-6 py-4 sm:py-5 min-w-0">

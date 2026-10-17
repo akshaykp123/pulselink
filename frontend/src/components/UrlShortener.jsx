@@ -18,12 +18,14 @@ export default function UrlShortener({
   const [showQR, setShowQR] = useState(false);
   const [searchCode, setSearchCode] = useState('');
 
+  // Submit form to create a new short URL
   const handleShorten = async (e) => {
     e.preventDefault();
     if (!originalUrl) return;
     setIsShortening(true);
     setError('');
     try {
+      // Send original long URL and optional custom alias to backend API
       const res = await fetch(`${apiBase}/api/urls`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -31,9 +33,11 @@ export default function UrlShortener({
       });
       const data = await res.json();
       if (!res.ok) {
+        // If rate limited by Redis, show retry countdown
         if (res.status === 429) throw new Error(`Rate limited — wait ${data.retryAfterSeconds || 60}s`);
         throw new Error(data.error || 'Failed to shorten');
       }
+      // Store created link result, reset inputs, and notify parent App component
       setCreatedUrl(data);
       setOriginalUrl('');
       setCustomAlias('');
@@ -45,6 +49,7 @@ export default function UrlShortener({
     }
   };
 
+  // Search/inspect an existing short code directly
   const handleInspectSubmit = (e) => {
     e.preventDefault();
     const cleanCode = searchCode.trim().replace(/^\//, '');
@@ -54,6 +59,7 @@ export default function UrlShortener({
     }
   };
 
+  // Copy link to clipboard and show brief checkmark feedback
   const copyLink = (text) => {
     navigator.clipboard.writeText(text);
     setCopied(true);

@@ -6,20 +6,21 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Dedicated Redis connection for BullMQ worker
 const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
 });
 
-// Create the background worker
+// Background worker that pulls click events from Redis queue and writes to PostgreSQL
 export const telemetryWorker = new Worker(
   'telemetry-queue',
   async (job) => {
     const { urlId, ip, userAgent, referer } = job.data;
 
-    // 1. Parse IP and browser headers into clean metadata
+    // 1. Parse raw IP and User-Agent into clean country, device, browser, and OS data
     const telemetry = parseClickTelemetry(ip, userAgent, referer);
 
-    // 2. Insert into PostgreSQL clicks table
+    // 2. Insert the complete click event record into PostgreSQL clicks table
     const query = `
       INSERT INTO clicks (
         url_id, ip_hash, country, city, device_type, browser, os, referrer
@@ -41,18 +42,19 @@ export const telemetryWorker = new Worker(
 
     await pool.query(query, values);
 
-    // Log the successful processing in your terminal
+    // Print summary log to terminal
     console.log(
       `📊 [WORKER] Click logged for URL #${urlId} -> ${telemetry.country} | ${telemetry.browser} | ${telemetry.deviceType}`
     );
   },
   {
     connection: redisConnection,
-    concurrency: 5, // Process up to 5 click jobs concurrently!
+    // Concurrency: process up to 5 click jobs at the same time
+    concurrency: 5,
   }
 );
 
-// Worker Event Listeners
+// Worker event listeners for monitoring job status
 telemetryWorker.on('completed', (job) => {
   // Job finished successfully
 });

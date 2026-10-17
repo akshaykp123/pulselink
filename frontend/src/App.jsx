@@ -8,7 +8,8 @@ import { ExternalLink, RefreshCw, Link as LinkIcon } from 'lucide-react';
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export default function App() {
-    const [activeCode, setActiveCode] = useState(() => {
+  // On first load, default to the last created short link so refreshing brings you back to your newest link
+  const [activeCode, setActiveCode] = useState(() => {
     try {
       const lastCreated = localStorage.getItem('pulselink_last_created_code');
       if (lastCreated) return lastCreated;
@@ -19,12 +20,14 @@ export default function App() {
       return '';
     }
   });
+
+  // State for analytics data, loading spinners, and error alerts
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
 
-  // 1. Initialize recentCodes from localStorage (survives page reloads)
+  // Keep list of recently visited short links in localStorage so they survive page reloads
   const [recentCodes, setRecentCodes] = useState(() => {
     try {
       const saved = localStorage.getItem('pulselink_recent_codes');
@@ -37,7 +40,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Manual refresh with tactile visual feedback
+  // Manually re-fetch analytics data with a brief spinning icon feedback
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -49,21 +52,23 @@ export default function App() {
     }
   };
 
-  // 3. Fetch telemetry analytics for a specific short code
+  // Fetch telemetry analytics for a specific short code
   const fetchAnalytics = async (code, silent = false) => {
     if (!code) return;
-    // Optimistic UI: Immediately highlight chip and header (0ms visual feedback)
+
+    // Optimistic UI: highlight the chip and header immediately (0ms visual response)
     setActiveCode(code);
     if (!silent) setIsLoading(true);
     setError('');
 
     try {
+      // Call backend analytics endpoint
       const res = await fetch(`${API_BASE}/api/urls/${code}/analytics`);
       if (!res.ok) throw new Error('Short code not found');
       const data = await res.json();
       setAnalytics(data);
 
-      // Persist to recent list if new
+      // Add code to recent list if it is not already there
       setRecentCodes((prev) => {
         if (prev.includes(code)) return prev;
         const updated = [code, ...prev];
@@ -78,7 +83,7 @@ export default function App() {
     }
   };
 
-  // Initial load: Always load the LAST CREATED link on page refresh
+  // When the page first loads or refreshes, automatically load analytics for the last created short link
   useEffect(() => {
     try {
       const savedCodes = JSON.parse(localStorage.getItem('pulselink_recent_codes') || '[]');
@@ -95,18 +100,19 @@ export default function App() {
     }
   }, []);
 
-  // Live Auto-Refresh polling (every 3 seconds when toggled on)
+  // Polling: automatically re-fetch analytics every 3 seconds if live auto-refresh toggle is on
   useEffect(() => {
     if (!autoRefresh) return;
     const iv = setInterval(() => fetchAnalytics(activeCode, true), 3000);
     return () => clearInterval(iv);
   }, [autoRefresh, activeCode]);
 
-  // Simulate a live click through Redis cache and BullMQ queue
+  // Test click: trigger a real redirect through Redis cache and BullMQ worker to test the live pipeline
   const handleSimulateClick = async () => {
     setIsSimulating(true);
     try {
       await fetch(`${API_BASE}/${activeCode}`, { method: 'GET', redirect: 'follow' });
+      // Re-fetch analytics shortly after to show the newly logged click
       setTimeout(() => { fetchAnalytics(activeCode, true); setIsSimulating(false); }, 400);
     } catch {
       setIsSimulating(false);
@@ -123,12 +129,13 @@ export default function App() {
       />
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 flex flex-col gap-4">
-        {/* URL Shortener toolbar */}
-                <UrlShortener
+        {/* URL Shortener input toolbar and inspect chips */}
+        <UrlShortener
           activeCode={activeCode}
           recentCodes={recentCodes}
           onSelectCode={(code) => fetchAnalytics(code)}
           onUrlCreated={(code) => {
+            // Save this new code as the last created so page refresh always returns here
             localStorage.setItem('pulselink_last_created_code', code);
             setRecentCodes((prev) => {
               const updated = [code, ...prev.filter((c) => c !== code)];
