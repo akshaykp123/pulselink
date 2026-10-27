@@ -4,13 +4,14 @@ import UrlShortener from './components/UrlShortener';
 import AnalyticsSummary from './components/AnalyticsSummary';
 import AnalyticsCharts from './components/AnalyticsCharts';
 import { ExternalLink, RefreshCw, Link as LinkIcon } from 'lucide-react';
+import type { AnalyticsResponse } from './types/analytics';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export default function App() {
   // On first load, default to the last created short link
   // Why pulselink_last_created_code: Decouples inspecting older links from creation history. If you inspect /a and refresh, you return to your latest project link (/e)
-  const [activeCode, setActiveCode] = useState(() => {
+  const [activeCode, setActiveCode] = useState<string>(() => {
     try {
       const lastCreated = localStorage.getItem('pulselink_last_created_code');
       if (lastCreated) return lastCreated;
@@ -23,13 +24,13 @@ export default function App() {
   });
 
   // State for analytics data, loading spinners, and error alerts
-  const [analytics, setAnalytics] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
 
   // Keep list of recently visited short links in localStorage so they survive page reloads
-  const [recentCodes, setRecentCodes] = useState(() => {
+  const [recentCodes, setRecentCodes] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('pulselink_recent_codes');
       return saved ? JSON.parse(saved) : [];
@@ -38,8 +39,8 @@ export default function App() {
     }
   });
 
-  const [error, setError] = useState('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Manually re-fetch analytics data with a brief spinning icon feedback
   const handleManualRefresh = async () => {
@@ -54,7 +55,7 @@ export default function App() {
   };
 
   // Fetch telemetry analytics for a specific short code
-  const fetchAnalytics = async (code, silent = false) => {
+  const fetchAnalytics = async (code: string, silent: boolean = false) => {
     if (!code) return;
 
     // Optimistic UI pattern: Highlight the chip and header immediately before network request completes
@@ -67,7 +68,7 @@ export default function App() {
       // Call backend analytics endpoint
       const res = await fetch(`${API_BASE}/api/urls/${code}/analytics`);
       if (!res.ok) throw new Error('Short code not found');
-      const data = await res.json();
+      const data: AnalyticsResponse = await res.json();
       setAnalytics(data);
 
       // Add code to recent list if it is not already there
@@ -77,8 +78,12 @@ export default function App() {
         localStorage.setItem('pulselink_recent_codes', JSON.stringify(updated));
         return updated;
       });
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to fetch analytics');
+      }
       setAnalytics(null);
     } finally {
       if (!silent) setIsLoading(false);
@@ -88,7 +93,7 @@ export default function App() {
   // When the page first loads or refreshes, automatically load analytics for the last created short link
   useEffect(() => {
     try {
-      const savedCodes = JSON.parse(localStorage.getItem('pulselink_recent_codes') || '[]');
+      const savedCodes: string[] = JSON.parse(localStorage.getItem('pulselink_recent_codes') || '[]');
       const lastCreated = localStorage.getItem('pulselink_last_created_code') || savedCodes[0];
       if (lastCreated) {
         fetchAnalytics(lastCreated);
@@ -115,7 +120,10 @@ export default function App() {
     try {
       await fetch(`${API_BASE}/${activeCode}`, { method: 'GET', redirect: 'follow' });
       // Why 400ms delay: Gives BullMQ background worker enough time to consume the job and write to PostgreSQL before re-fetching
-      setTimeout(() => { fetchAnalytics(activeCode, true); setIsSimulating(false); }, 400);
+      setTimeout(() => {
+        fetchAnalytics(activeCode, true);
+        setIsSimulating(false);
+      }, 400);
     } catch {
       setIsSimulating(false);
     }
@@ -135,8 +143,8 @@ export default function App() {
         <UrlShortener
           activeCode={activeCode}
           recentCodes={recentCodes}
-          onSelectCode={(code) => fetchAnalytics(code)}
-          onUrlCreated={(code) => {
+          onSelectCode={(code: string) => fetchAnalytics(code)}
+          onUrlCreated={(code: string) => {
             // Save this new code as the last created so page refresh always returns here
             localStorage.setItem('pulselink_last_created_code', code);
             setRecentCodes((prev) => {
@@ -149,7 +157,7 @@ export default function App() {
           apiBase={API_BASE}
         />
 
-                {/* Analytics section header */}
+        {/* Analytics section header */}
         {analytics && (
           <div className="flex items-center justify-between border-b border-slate-200 pb-2 pt-1 gap-2 min-w-0">
             <div className="flex items-center gap-2 min-w-0 flex-1">

@@ -1,7 +1,21 @@
 import React from 'react';
 
-export default function BreakdownList({ title, items, labelKey, countKey, barColor = 'bg-blue-600' }) {
-  const total = items ? items.reduce((acc, curr) => acc + curr[countKey], 0) : 0;
+export interface BreakdownListProps {
+  title: string;
+  items?: Record<string, any>[];
+  labelKey: string;
+  countKey: string;
+  barColor?: string;
+}
+
+export default function BreakdownList({
+  title,
+  items = [],
+  labelKey,
+  countKey,
+  barColor = 'bg-blue-600',
+}: BreakdownListProps) {
+  const total = items ? items.reduce((acc, curr) => acc + Number(curr[countKey] || 0), 0) : 0;
 
   return (
     <div className="bg-white border border-slate-200/90 p-4 rounded-xl shadow-xs space-y-3">
@@ -9,7 +23,7 @@ export default function BreakdownList({ title, items, labelKey, countKey, barCol
       <div className="space-y-2.5">
         {items && items.length > 0 ? (
           items.map((item, index) => {
-            const count = item[countKey];
+            const count = Number(item[countKey] || 0);
             const percent = total > 0 ? Math.round((count / total) * 100) : 0;
             return (
               <div key={index} className="space-y-1">

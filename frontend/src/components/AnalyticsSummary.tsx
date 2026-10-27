@@ -1,9 +1,27 @@
 import React from 'react';
+import { AnalyticsSummaryData, CountryStat, DeviceStat } from '../types/analytics';
+
+export interface AnalyticsSummaryProps {
+  summary?: AnalyticsSummaryData | null;
+  countries?: CountryStat[];
+  devices?: DeviceStat[];
+}
+
+interface StatItem {
+  label: string;
+  value: string | number;
+  sub: string;
+  color: string;
+}
 
 // Top-level KPI summary strip (Total Clicks, Unique Visitors, Top Country, Primary Device)
-export default function AnalyticsSummary({ summary, countries, devices }) {
+export default function AnalyticsSummary({
+  summary,
+  countries,
+  devices,
+}: AnalyticsSummaryProps): React.JSX.Element {
   // Extract key summary metrics for display
-  const stats = [
+  const stats: StatItem[] = [
     {
       label: 'Total Clicks',
       value: summary?.totalClicks ?? 0,

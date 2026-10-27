@@ -1,25 +1,34 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Check, ExternalLink, QrCode, Loader2, AlertCircle, X, Link as LinkIcon } from 'lucide-react';
+import type { UrlData } from '../types/analytics';
 
-export default function UrlShortener({ 
-  onUrlCreated, 
-  activeCode, 
-  onSelectCode, 
-  recentCodes = [], 
-  apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5000' 
-}) {
-  const [originalUrl, setOriginalUrl] = useState('');
-  const [customAlias, setCustomAlias] = useState('');
-  const [createdUrl, setCreatedUrl] = useState(null);
-  const [isShortening, setIsShortening] = useState(false);
-  const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [showQR, setShowQR] = useState(false);
-  const [searchCode, setSearchCode] = useState('');
+export interface UrlShortenerProps {
+  onUrlCreated?: (shortCode: string) => void;
+  activeCode?: string;
+  onSelectCode?: (code: string) => void;
+  recentCodes?: string[];
+  apiBase?: string;
+}
+
+export default function UrlShortener({
+  onUrlCreated,
+  activeCode = '',
+  onSelectCode,
+  recentCodes = [],
+  apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5000',
+}: UrlShortenerProps) {
+  const [originalUrl, setOriginalUrl] = useState<string>('');
+  const [customAlias, setCustomAlias] = useState<string>('');
+  const [createdUrl, setCreatedUrl] = useState<UrlData | null>(null);
+  const [isShortening, setIsShortening] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+  const [copied, setCopied] = useState<boolean>(false);
+  const [showQR, setShowQR] = useState<boolean>(false);
+  const [searchCode, setSearchCode] = useState<string>('');
 
   // Submit form to create a new short URL
-  const handleShorten = async (e) => {
+  const handleShorten = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!originalUrl) return;
     setIsShortening(true);
@@ -43,15 +52,19 @@ export default function UrlShortener({
       setOriginalUrl('');
       setCustomAlias('');
       if (onUrlCreated) onUrlCreated(data.shortCode);
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to shorten URL');
+      }
     } finally {
       setIsShortening(false);
     }
   };
 
   // Search/inspect an existing short code directly
-  const handleInspectSubmit = (e) => {
+  const handleInspectSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Strip leading slash if user typed "/gh2026" instead of "gh2026"
     const cleanCode = searchCode.trim().replace(/^\//, '');
@@ -62,7 +75,7 @@ export default function UrlShortener({
   };
 
   // Copy link to clipboard and show brief checkmark feedback
-  const copyLink = (text) => {
+  const copyLink = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

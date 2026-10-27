@@ -3,10 +3,13 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
+import type { TimelinePoint, CountryStat, DeviceStat, BrowserStat, ReferrerStat, BreakdownItem } from '../types/analytics';
 
-const TABS = ['Countries', 'Devices', 'Browsers', 'Referrers'];
+type TabType = 'Countries' | 'Devices' | 'Browsers' | 'Referrers';
 
-const tooltipStyle = {
+const TABS: TabType[] = ['Countries', 'Devices', 'Browsers', 'Referrers'];
+
+const tooltipStyle: React.CSSProperties = {
   background: '#ffffff',
   border: '1px solid #e2e8f0',
   borderRadius: '8px',
@@ -22,13 +25,27 @@ const axisProps = {
   axisLine: false,
 };
 
-export default function AnalyticsCharts({ timeline = [], countries = [], devices = [], browsers = [], referrers = [] }) {
+export interface AnalyticsChartsProps {
+  timeline?: TimelinePoint[];
+  countries?: CountryStat[];
+  devices?: DeviceStat[];
+  browsers?: BrowserStat[];
+  referrers?: ReferrerStat[];
+}
+
+export default function AnalyticsCharts({
+  timeline = [],
+  countries = [],
+  devices = [],
+  browsers = [],
+  referrers = [],
+}: AnalyticsChartsProps) {
   // Current active breakdown tab (Countries, Devices, Browsers, or Referrers)
-  const [activeTab, setActiveTab] = useState('Countries');
+  const [activeTab, setActiveTab] = useState<TabType>('Countries');
 
   // Why data normalization: Each tab has different SQL column names (country, device_type, browser, referrer).
   // We map them into uniform [{ label, count }] objects so a single Recharts <BarChart> component can render all 4 views interchangeably
-  const activeList =
+  const activeList: BreakdownItem[] =
     activeTab === 'Countries'
       ? countries.map((c) => ({ label: c.country || 'Unknown', count: Number(c.clicks) }))
       : activeTab === 'Devices'
@@ -95,7 +112,7 @@ export default function AnalyticsCharts({ timeline = [], countries = [], devices
                     dataKey="time_bucket"
                     {...axisProps}
                     interval="preserveStartEnd"
-                    tickFormatter={(val) => {
+                    tickFormatter={(val: string) => {
                       if (!val) return '';
                       const parts = val.split(' ');
                       return parts[1] ? parts[1].slice(0, 5) : val.slice(5);
@@ -110,7 +127,7 @@ export default function AnalyticsCharts({ timeline = [], countries = [], devices
                   <Tooltip
                     contentStyle={tooltipStyle}
                     cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }}
-                    formatter={(value) => [`${value} click${value === 1 ? '' : 's'}`, 'Traffic']}
+                    formatter={(value: any) => [`${value} click${Number(value) === 1 ? '' : 's'}`, 'Traffic']}
                   />
 
                   <Area
@@ -192,10 +209,13 @@ export default function AnalyticsCharts({ timeline = [], countries = [], devices
                   <Tooltip
                     contentStyle={tooltipStyle}
                     cursor={{ fill: '#f8fafc' }}
-                    formatter={(value) => [
-                      `${value} click${value === 1 ? '' : 's'}${totalListClicks > 0 ? ` (${Math.round((value / totalListClicks) * 100)}%)` : ''}`,
-                      'Clicks'
-                    ]}
+                    formatter={(value: any) => {
+                      const num = Number(value);
+                      return [
+                        `${num} click${num === 1 ? '' : 's'}${totalListClicks > 0 ? ` (${Math.round((num / totalListClicks) * 100)}%)` : ''}`,
+                        'Clicks',
+                      ];
+                    }}
                   />
                   <Bar
                     dataKey="count"

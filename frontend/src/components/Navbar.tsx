@@ -1,8 +1,20 @@
 import React from 'react';
 import { Activity, RefreshCw } from 'lucide-react';
 
+export interface NavbarProps {
+  autoRefresh: boolean;
+  setAutoRefresh: (val: boolean) => void;
+  onSimulateClick: () => void;
+  isSimulating: boolean;
+}
+
 // Navigation bar with branding and live controls
-export default function Navbar({ autoRefresh, setAutoRefresh, onSimulateClick, isSimulating }) {
+export default function Navbar({
+  autoRefresh,
+  setAutoRefresh,
+  onSimulateClick,
+  isSimulating,
+}: NavbarProps): React.JSX.Element {
   return (
     <header className="border-b border-slate-200 bg-white sticky top-0 z-50 h-14 flex items-center">
       <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 flex items-center justify-between gap-3 min-w-0">
