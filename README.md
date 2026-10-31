@@ -1,5 +1,7 @@
 # ⚡ PulseLink — Full-Stack URL Shortener & Telemetry Dashboard
-
+[![PulseLink CI](https://github.com/akshaykp123/pulselink/actions/workflows/ci.yml/badge.svg)](https://github.com/akshaykp123/pulselink/actions/workflows/ci.yml)
+[![Vitest](https://img.shields.io/badge/Vitest-Automated_Tests-729B1B.svg?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Supertest](https://img.shields.io/badge/Supertest-Integration_Tests-2b7489.svg)](https://github.com/ladjs/supertest)
 [![TypeScript](https://img.shields.io/badge/TypeScript-v7-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb.svg?logo=react&logoColor=black)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-339933.svg?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
