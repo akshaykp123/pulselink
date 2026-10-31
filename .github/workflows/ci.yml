@@ -1,0 +1,92 @@
+name: PulseLink CI
+
+# Trigger this pipeline on every git push or pull request to the main branch
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Run Backend Integration Tests (with Postgres & Redis)
+  # -------------------------------------------------------------
+  backend-tests:
+    name: Backend Tests (Vitest + Supertest)
+    runs-on: ubuntu-latest
+
+    # GitHub Actions starts PostgreSQL and Redis service containers for us!
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pulselink_user
+          POSTGRES_PASSWORD: pulselink_password
+          POSTGRES_DB: pulselink_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 📥 Check out repository code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 🗄️ Initialize PostgreSQL Database Schema
+        run: |
+          sudo apt-get install -y postgresql-client
+          PGPASSWORD=pulselink_password psql -h localhost -U pulselink_user -d pulselink_db -f backend/db/init.sql
+
+      - name: 📦 Install Backend Dependencies
+        working-directory: ./backend
+        run: npm install
+
+      - name: 🧪 Run Automated Integration Tests (Vitest)
+        working-directory: ./backend
+        env:
+          PORT: 5000
+          DATABASE_URL: postgresql://pulselink_user:pulselink_password@localhost:5432/pulselink_db
+          REDIS_URL: redis://localhost:6379
+        run: npm test
+
+  # -------------------------------------------------------------
+  # Job 2: Verify Frontend TypeScript Compilation and Vite Build
+  # -------------------------------------------------------------
+  frontend-build:
+    name: Frontend Build (TypeScript + Vite)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Check out repository code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: 🔨 Compile TypeScript and Build Vite Bundle
+        working-directory: ./frontend
+        run: npm run build

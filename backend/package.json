@@ -5,7 +5,8 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "bullmq": "^6.3.11",
@@ -18,6 +19,8 @@
     "ua-parser-js": "^2.0.10"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "supertest": "^7.3.1",
+    "vitest": "^5.0.5"
   }
 }

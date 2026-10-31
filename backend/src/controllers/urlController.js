@@ -35,18 +35,20 @@ export async function shortenUrl(req, res) {
       return res.status(201).json({ shortCode: newUrl.short_code, shortUrl: `${BASE_URL}/${newUrl.short_code}`, originalUrl: newUrl.original_url, createdAt: newUrl.created_at });
     }
 
-    // Branch B: Auto-generate code using database sequence ID + Base62
-    // Why two-step insert: The database BIGSERIAL sequence provides a collision-free 64-bit integer ID.
-    // 1. We insert a row with a temporary placeholder to reserve the sequence number
-    const insertResult = await pool.query(`INSERT INTO urls (short_code, original_url) VALUES ('temp', $1) RETURNING id`, [originalUrl]);
-    const generatedId = insertResult.rows[0].id;
+        // Branch B: Auto-generate code using atomic database sequence ID + Base62
+    // 1. Atomically reserve the next unique ID from the sequence (Prevents race conditions!)
+    const seqResult = await pool.query(`SELECT nextval('urls_id_seq') AS id`);
+    const generatedId = seqResult.rows[0].id;
 
-    // 2. Convert the 64-bit numeric ID into a compact Base62 string (e.g. ID 125 -> "21", ID 100000 -> "q0U")
+    // 2. Convert the numeric ID into a compact Base62 string
     const shortCode = encodeBase62(generatedId);
 
-    // 3. Update the row with its permanent Base62 short code
-    const updateResult = await pool.query(`UPDATE urls SET short_code = $1 WHERE id = $2 RETURNING id, short_code, original_url, created_at`, [shortCode, generatedId]);
-    const newUrl = updateResult.rows[0];
+    // 3. Insert directly with its permanent short code in a single atomic query
+    const insertResult = await pool.query(
+      `INSERT INTO urls (id, short_code, original_url) VALUES ($1, $2, $3) RETURNING id, short_code, original_url, created_at`,
+      [generatedId, shortCode, originalUrl]
+    );
+    const newUrl = insertResult.rows[0];
 
     // 4. Pre-warm Redis cache so the very first click on this new link hits RAM immediately
     await redis.set(`url:${newUrl.short_code}`, JSON.stringify({ id: newUrl.id, originalUrl: newUrl.original_url }), 'EX', CACHE_TTL_SECONDS);
