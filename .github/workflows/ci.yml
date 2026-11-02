@@ -8,9 +8,9 @@ on:
     branches: [ main ]
 
 jobs:
-  # -------------------------------------------------------------
+  
   # Job 1: Run Backend Integration Tests (with Postgres & Redis)
-  # -------------------------------------------------------------
+
   backend-tests:
     name: Backend Tests (Vitest + Supertest)
     runs-on: ubuntu-latest
@@ -42,24 +42,24 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: 📥 Check out repository code
+      - name: 📥 Check out repository code      # Download Code
         uses: actions/checkout@v4
 
-      - name: 🟢 Set up Node.js 20
+      - name: 🟢 Set up Node.js 20              # Install Node.js 
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: 🗄️ Initialize PostgreSQL Database Schema
+      - name: 🗄️ Initialize PostgreSQL Database Schema        # Build the Tables
         run: |
           sudo apt-get install -y postgresql-client
           PGPASSWORD=pulselink_password psql -h localhost -U pulselink_user -d pulselink_db -f backend/db/init.sql
 
-      - name: 📦 Install Backend Dependencies
+      - name: 📦 Install Backend Dependencies     # Install Packages
         working-directory: ./backend
         run: npm install
 
-      - name: 🧪 Run Automated Integration Tests (Vitest)
+      - name: 🧪 Run Automated Integration Tests (Vitest)       # Run the Tests
         working-directory: ./backend
         env:
           PORT: 5000
@@ -67,9 +67,9 @@ jobs:
           REDIS_URL: redis://localhost:6379
         run: npm test
 
-  # -------------------------------------------------------------
-  # Job 2: Verify Frontend TypeScript Compilation and Vite Build
-  # -------------------------------------------------------------
+  
+  #  Verify Frontend TypeScript Compilation and Vite Build
+  
   frontend-build:
     name: Frontend Build (TypeScript + Vite)
     runs-on: ubuntu-latest
