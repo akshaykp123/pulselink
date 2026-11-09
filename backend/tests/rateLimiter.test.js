@@ -3,8 +3,8 @@ import request from 'supertest';
 import app from '../src/app.js';
 
 describe('Distributed Redis Rate Limiter Middleware', () => {
-  // Use a unique fake IP address for this test so it has a fresh Redis counter
-  const testIp = '198.51.100.99';
+  // Use a unique fake IP address for each test run so it has a fresh Redis counter
+  const testIp = `198.51.100.${Math.floor(Math.random() * 200) + 10}`;
 
   it('should allow up to 5 requests, then block the 6th with HTTP 429', async () => {
     // 1. Send 5 requests rapidly (All 5 should succeed with 201 Created)

@@ -16,10 +16,10 @@ const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:63
 export const telemetryWorker = new Worker(
   'telemetry-queue',
   async (job) => {
-    const { urlId, ip, userAgent, referer } = job.data;
+    const { urlId, ip, userAgent, referer, visitorId } = job.data;
 
-    // 1. Parse raw IP and User-Agent into clean country, device, browser, and OS data
-    const telemetry = parseClickTelemetry(ip, userAgent, referer);
+    // 1. Parse raw IP and User-Agent into clean country, device, browser, OS, and unique visitor hash
+    const telemetry = parseClickTelemetry(ip, userAgent, referer, visitorId);
 
     // 2. Insert the complete click event record into PostgreSQL clicks table
     const query = `

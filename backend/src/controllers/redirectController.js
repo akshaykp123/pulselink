@@ -1,4 +1,5 @@
 import { performance } from 'perf_hooks';
+import { nanoid } from 'nanoid';
 import pool from '../config/db.js';
 import redis from '../config/redis.js';
 import { telemetryQueue } from '../queues/telemetryQueue.js';
@@ -47,22 +48,56 @@ export async function handleRedirect(req, res) {
     const rawIp = req.headers['true-client-ip'] || req.headers['cf-connecting-ip'] || (req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip || req.socket.remoteAddress || '127.0.0.1';
     const clientIp = typeof rawIp === 'string' ? rawIp.replace(/(:\d+$)/, '').trim() : '127.0.0.1';
 
-    // 3. Offload click data to BullMQ queue without await so user gets redirected immediately
-    // Crucial: we do NOT 'await' here. Pushing to BullMQ takes <1ms and lets background workers handle heavy DB writes
-    telemetryQueue.add('process-click', {
-      urlId: urlData.id,
-      ip: clientIp,
-      userAgent: req.headers['user-agent'] || '',
-      referer: req.headers['referer'] || req.headers['referrer'] || 'Direct',
-    }).catch((err) => console.error('Failed to enqueue click telemetry:', err));
+    // -------------------------------------------------------------
+    // 3. NanoID Visitor Tracking (Persistent Cross-Network Identity)
+    // -------------------------------------------------------------
+    let visitorId = null;
+    if (req.headers.cookie) {
+      const match = req.headers.cookie.match(/(?:^|;\s*)pulselink_vid=([^;]+)/);
+      if (match) visitorId = match[1];
+    }
+    if (!visitorId) {
+      visitorId = nanoid();
+    }
 
-    // 4. Increment total clicks in PostgreSQL in background without blocking the response
-    // Running without await keeps redirect speed fast; errors are safely caught in .catch()
-    pool.query('UPDATE urls SET clicks_count = clicks_count + 1 WHERE id = $1', [urlData.id])
-      .catch((err) => console.error('Error updating click count:', err));
+    // Set cookie on response (lasts 1 year, httpOnly for security)
+    res.cookie('pulselink_vid', visitorId, {
+      maxAge: 365 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      sameSite: 'lax',
+    });
 
-    // 5. Send HTTP 302 (Found / Temporary Redirect) instead of 301
-    // Why 302 not 301: 301 is permanently cached by browsers, so future clicks would never reach our server to record analytics
+    // -------------------------------------------------------------
+    // 4. Click Debouncing via Redis (2-Second Window Filter)
+    // -------------------------------------------------------------
+    // Check if the request is an automated background prefetch (e.g. mobile camera or browser preview)
+    const isPrefetch =
+      req.headers['purpose'] === 'prefetch' ||
+      req.headers['sec-purpose'] === 'prefetch';
+
+    // 2-second Redis debounce lock per short code + client IP + user-agent
+    const debounceKey = `debounce:${code}:${clientIp}:${req.headers['user-agent'] || ''}`;
+    const isFreshClick = await redis.set(debounceKey, '1', 'EX', 2, 'NX');
+
+    // Only record analytics if it is NOT an automated prefetch AND NOT a rapid duplicate within 2s!
+    if (!isPrefetch && isFreshClick) {
+      // Offload to BullMQ with visitorId
+      telemetryQueue.add('process-click', {
+        urlId: urlData.id,
+        ip: clientIp,
+        visitorId: visitorId,
+        userAgent: req.headers['user-agent'] || '',
+        referer: req.headers['referer'] || req.headers['referrer'] || 'Direct',
+      }).catch((err) => console.error('Failed to enqueue click telemetry:', err));
+
+      // Increment click counter in PostgreSQL
+      pool.query('UPDATE urls SET clicks_count = clicks_count + 1 WHERE id = $1', [urlData.id])
+        .catch((err) => console.error('Error updating click count:', err));
+    }
+
+    // -------------------------------------------------------------
+    // 5. Send HTTP 302 (Found / Temporary Redirect)
+    // -------------------------------------------------------------
     return res.redirect(302, urlData.originalUrl);
   } catch (error) {
     console.error('Error redirecting:', error);

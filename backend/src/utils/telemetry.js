@@ -7,18 +7,19 @@ import { UAParser } from 'ua-parser-js';
  * @param {string} ip - Visitor IP address
  * @param {string} userAgent - HTTP User-Agent header
  * @param {string} referer - HTTP Referer header
+ * @param {string|null} visitorId - Persistent NanoID browser identifier (cookie)
  */
-// Parses raw request headers into structured analytics data
-export function parseClickTelemetry(ip, userAgent = '', referer = 'Direct') {
+export function parseClickTelemetry(ip, userAgent = '', referer = 'Direct', visitorId = null) {
   // 1. Clean the IP string and remove port number if attached
   const rawClean = typeof ip === 'string' ? ip.split(',')[0].trim().replace(/(:\d+$)/, '') : (ip || '127.0.0.1');
   const cleanIp = (rawClean === '::1' || rawClean.startsWith('::ffff:127.0.0.1') || rawClean === 'localhost')
     ? '127.0.0.1'
     : rawClean;
 
-  // 2. Hash the IP with SHA-256 for privacy (GDPR compliance)
-  // Why SHA-256 IP hash: Storing raw IP addresses violates privacy regulations. Hashing produces a 64-character anonymous fingerprint so we can calculate unique visitors without saving personal data
-  const ipHash = crypto.createHash('sha256').update(cleanIp).digest('hex');
+  // 2. Hash the visitor identity with SHA-256 for privacy (GDPR compliance)
+  // If persistent NanoID visitor cookie is present, use it for cross-network identity; fallback to cleanIp
+  const identitySource = visitorId || cleanIp;
+  const ipHash = crypto.createHash('sha256').update(identitySource).digest('hex');
 
   // 3. Find visitor country and city using geoip-lite offline database
   // Why geoip-lite: Uses an in-memory binary database (<0.1ms lookup) instead of slow third-party HTTP APIs that can fail or rate-limit us

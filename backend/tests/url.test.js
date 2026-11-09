@@ -5,7 +5,7 @@ import app from '../src/app.js';
 describe('URL Shortening and Redirection API', () => {
   let createdShortCode = '';
 
-  //  Shorten a valid URL
+  // 1. Shorten a valid URL
   it('should shorten a long URL and return 201 Created', async () => {
     const res = await request(app)
       .post('/api/urls')
@@ -22,7 +22,7 @@ describe('URL Shortening and Redirection API', () => {
     createdShortCode = res.body.shortCode;
   });
 
-  //  Redirect using the shortCode generated in Test 1
+  // 2. Redirect using the shortCode generated in Test 1
   it('should redirect a short URL to the original destination with 302', async () => {
     const res = await request(app).get(`/${createdShortCode}`);
 
@@ -31,9 +31,13 @@ describe('URL Shortening and Redirection API', () => {
 
     // Expect the HTTP Location header to point to the destination URL
     expect(res.headers.location).toBe('https://github.com/torvalds/linux');
+
+    // Expect NanoID persistent visitor cookie to be set
+    expect(res.headers['set-cookie']).toBeDefined();
+    expect(res.headers['set-cookie'][0]).toContain('pulselink_vid=');
   });
 
-  //  Reject an invalid URL format
+  // 3. Reject an invalid URL format
   it('should return 400 Bad Request for an invalid URL', async () => {
     const res = await request(app)
       .post('/api/urls')
