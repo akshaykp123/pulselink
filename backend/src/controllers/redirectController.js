@@ -53,20 +53,25 @@ export async function handleRedirect(req, res) {
       '127.0.0.1';
     const clientIp = typeof rawIp === 'string' ? rawIp.replace(/(:\d+$)/, '').trim() : '127.0.0.1';
 
-    // Track unique visitor across network changes via 1-year cookie
+    // Track unique visitor via cookie or x-visitor-id header (for cross-origin/simulated clicks)
     let visitorId = null;
     if (req.headers.cookie) {
       const match = req.headers.cookie.match(/(?:^|;\s*)pulselink_vid=([^;]+)/);
       if (match) visitorId = match[1];
     }
+    if (!visitorId && req.headers['x-visitor-id']) {
+      visitorId = req.headers['x-visitor-id'];
+    }
     if (!visitorId) {
       visitorId = nanoid();
     }
 
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('pulselink_vid', visitorId, {
       maxAge: 365 * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: isProduction ? 'none' : 'lax',
+      secure: isProduction,
     });
 
     // Skip bot prefetches (e.g. mobile camera scanners, link previews)

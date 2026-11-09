@@ -26,6 +26,15 @@ describe('URL Shortening and Redirection API', () => {
     expect(res.headers['set-cookie'][0]).toContain('pulselink_vid=');
   });
 
+  it('should reuse visitor ID from x-visitor-id header', async () => {
+    const res = await request(app)
+      .get(`/${createdShortCode}`)
+      .set('x-visitor-id', 'test-sim-vid-12345');
+
+    expect(res.status).toBe(302);
+    expect(res.headers['set-cookie'][0]).toContain('pulselink_vid=test-sim-vid-12345');
+  });
+
   it('should return 400 Bad Request for an invalid URL', async () => {
     const res = await request(app)
       .post('/api/urls')

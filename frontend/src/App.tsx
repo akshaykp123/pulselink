@@ -108,7 +108,22 @@ export default function App() {
   const handleSimulateClick = async () => {
     setIsSimulating(true);
     try {
-      await fetch(`${API_BASE}/${activeCode}`, { method: 'GET', redirect: 'follow' });
+      // Maintain persistent visitor identity across simulated clicks
+      let vid = localStorage.getItem('pulselink_vid');
+      if (!vid) {
+        vid = 'sim_' + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('pulselink_vid', vid);
+      }
+
+      await fetch(`${API_BASE}/${activeCode}`, {
+        method: 'GET',
+        headers: {
+          'x-visitor-id': vid,
+        },
+        credentials: 'include',
+        redirect: 'follow',
+      });
+
       // Brief delay to allow background queue worker to write to Postgres
       setTimeout(() => {
         fetchAnalytics(activeCode, true);
