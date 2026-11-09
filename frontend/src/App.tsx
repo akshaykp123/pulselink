@@ -120,17 +120,16 @@ export default function App() {
         headers: {
           'x-visitor-id': vid,
         },
-        credentials: 'include',
-        redirect: 'follow',
+        redirect: 'manual',
       });
-
+    } catch {
+      // Ignore opaque redirect response
+    } finally {
       // Brief delay to allow background queue worker to write to Postgres
       setTimeout(() => {
         fetchAnalytics(activeCode, true);
         setIsSimulating(false);
-      }, 400);
-    } catch {
-      setIsSimulating(false);
+      }, 500);
     }
   };
 
