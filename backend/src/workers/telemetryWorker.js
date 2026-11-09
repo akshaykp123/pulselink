@@ -6,22 +6,17 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Dedicated Redis connection for BullMQ worker
-// Why maxRetriesPerRequest: null is required by BullMQ so blocking Redis commands (BRPOPLPUSH) wait without timing out
+// maxRetriesPerRequest: null is required by BullMQ for blocking Redis commands
 const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
 });
 
-// Background worker that pulls click events from Redis queue and writes to PostgreSQL
 export const telemetryWorker = new Worker(
   'telemetry-queue',
   async (job) => {
     const { urlId, ip, userAgent, referer, visitorId } = job.data;
-
-    // 1. Parse raw IP and User-Agent into clean country, device, browser, OS, and unique visitor hash
     const telemetry = parseClickTelemetry(ip, userAgent, referer, visitorId);
 
-    // 2. Insert the complete click event record into PostgreSQL clicks table
     const query = `
       INSERT INTO clicks (
         url_id, ip_hash, country, city, device_type, browser, os, referrer
@@ -43,22 +38,15 @@ export const telemetryWorker = new Worker(
 
     await pool.query(query, values);
 
-    // Print summary log to terminal
     console.log(
       `📊 [WORKER] Click logged for URL #${urlId} -> ${telemetry.country} | ${telemetry.browser} | ${telemetry.deviceType}`
     );
   },
   {
     connection: redisConnection,
-    // Concurrency: process up to 5 click jobs at the same time
     concurrency: 5,
   }
 );
-
-// Worker event listeners for monitoring job status
-telemetryWorker.on('completed', (job) => {
-  // Job finished successfully
-});
 
 telemetryWorker.on('failed', (job, err) => {
   console.error(`❌ [WORKER] Job #${job.id} failed:`, err.message);

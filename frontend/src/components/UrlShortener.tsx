@@ -27,15 +27,13 @@ export default function UrlShortener({
   const [showQR, setShowQR] = useState<boolean>(false);
   const [searchCode, setSearchCode] = useState<string>('');
 
-  // Submit form to create a new short URL
   const handleShorten = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!originalUrl) return;
     setIsShortening(true);
     setError('');
+
     try {
-      // Send original long URL and optional custom alias to backend API
-      // If customAlias is empty, passing undefined omits it from JSON so backend auto-generates Base62
       const res = await fetch(`${apiBase}/api/urls`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,11 +41,10 @@ export default function UrlShortener({
       });
       const data = await res.json();
       if (!res.ok) {
-        // If rate limited by Redis (5 requests per 60s), show retry countdown
         if (res.status === 429) throw new Error(`Rate limited — wait ${data.retryAfterSeconds || 60}s`);
         throw new Error(data.error || 'Failed to shorten');
       }
-      // Store created link result, reset inputs, and notify parent App component
+
       setCreatedUrl(data);
       setOriginalUrl('');
       setCustomAlias('');
@@ -63,10 +60,8 @@ export default function UrlShortener({
     }
   };
 
-  // Search/inspect an existing short code directly
   const handleInspectSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Strip leading slash if user typed "/gh2026" instead of "gh2026"
     const cleanCode = searchCode.trim().replace(/^\//, '');
     if (cleanCode && onSelectCode) {
       onSelectCode(cleanCode);
@@ -74,7 +69,6 @@ export default function UrlShortener({
     }
   };
 
-  // Copy link to clipboard and show brief checkmark feedback
   const copyLink = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -83,9 +77,7 @@ export default function UrlShortener({
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-xs divide-y divide-slate-100 overflow-hidden">
-      {/* Row 1: URL input form — exact earlier clean layout */}
       <form onSubmit={handleShorten} className="flex items-center">
-        {/* Long URL input */}
         <div className="flex flex-1 items-center gap-2.5 px-4 py-3 border-r border-slate-100 min-w-0">
           <LinkIcon className="w-4 h-4 text-slate-400 shrink-0" />
           <input
@@ -98,7 +90,6 @@ export default function UrlShortener({
           />
         </div>
 
-        {/* Custom slug */}
         <div className="flex items-center gap-1.5 px-3 sm:px-4 py-3 border-r border-slate-100 shrink-0">
           <span className="text-sm text-slate-300 select-none font-mono">/</span>
           <input
@@ -110,7 +101,6 @@ export default function UrlShortener({
           />
         </div>
 
-        {/* Submit button — original transparent/blue-text style, no solid bold blue fill */}
         <button
           type="submit"
           disabled={isShortening}
@@ -121,11 +111,9 @@ export default function UrlShortener({
         </button>
       </form>
 
-      {/* Row 2: Inspect row */}
       <div className="flex items-center gap-2.5 px-4 py-2.5 flex-wrap min-h-[38px]">
         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide shrink-0">Inspect:</span>
 
-        {/* Search */}
         <form onSubmit={handleInspectSubmit} className="flex items-center gap-1 shrink-0">
           <input
             type="text"
@@ -142,7 +130,6 @@ export default function UrlShortener({
           </button>
         </form>
 
-        {/* Chips */}
         <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto py-0.5 [&::-webkit-scrollbar]:hidden">
           {recentCodes.map((code) => (
             <button
@@ -159,7 +146,6 @@ export default function UrlShortener({
           ))}
         </div>
 
-        {/* Result banner */}
         {createdUrl && (
           <div className="ml-auto flex items-center gap-2 shrink-0 bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-1">
             <span className="text-xs font-mono text-blue-900 font-semibold truncate max-w-[200px]">{createdUrl.shortUrl}</span>
@@ -177,7 +163,6 @@ export default function UrlShortener({
           </div>
         )}
 
-        {/* Error */}
         {error && (
           <div className="ml-auto flex items-center gap-1 text-xs text-red-600 shrink-0 bg-red-50 px-2 py-0.5 rounded border border-red-200">
             <AlertCircle className="w-3.5 h-3.5" />
@@ -186,7 +171,6 @@ export default function UrlShortener({
         )}
       </div>
 
-      {/* QR Modal */}
       {showQR && createdUrl && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl text-center space-y-4 max-w-xs w-full">

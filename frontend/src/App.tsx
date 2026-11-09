@@ -3,14 +3,12 @@ import Navbar from './components/Navbar';
 import UrlShortener from './components/UrlShortener';
 import AnalyticsSummary from './components/AnalyticsSummary';
 import AnalyticsCharts from './components/AnalyticsCharts';
-import { ExternalLink, RefreshCw, Link as LinkIcon } from 'lucide-react';
+import { ExternalLink, RefreshCw, Link as LinkIcon, Trash2 } from 'lucide-react';
 import type { AnalyticsResponse } from './types/analytics';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export default function App() {
-  // On first load, default to the last created short link
-  // Why pulselink_last_created_code: Decouples inspecting older links from creation history. If you inspect /a and refresh, you return to your latest project link (/e)
   const [activeCode, setActiveCode] = useState<string>(() => {
     try {
       const lastCreated = localStorage.getItem('pulselink_last_created_code');
@@ -23,13 +21,12 @@ export default function App() {
     }
   });
 
-  // State for analytics data, loading spinners, and error alerts
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
-  // Keep list of recently visited short links in localStorage so they survive page reloads
   const [recentCodes, setRecentCodes] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('pulselink_recent_codes');
@@ -42,7 +39,6 @@ export default function App() {
   const [error, setError] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Manually re-fetch analytics data with a brief spinning icon feedback
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -54,24 +50,19 @@ export default function App() {
     }
   };
 
-  // Fetch telemetry analytics for a specific short code
   const fetchAnalytics = async (code: string, silent: boolean = false) => {
     if (!code) return;
 
-    // Optimistic UI pattern: Highlight the chip and header immediately before network request completes
-    // Eliminates the ~100-200ms pause so clicking chips feels 100% instant to the user
     setActiveCode(code);
     if (!silent) setIsLoading(true);
     setError('');
 
     try {
-      // Call backend analytics endpoint
       const res = await fetch(`${API_BASE}/api/urls/${code}/analytics`);
       if (!res.ok) throw new Error('Short code not found');
       const data: AnalyticsResponse = await res.json();
       setAnalytics(data);
 
-      // Add code to recent list if it is not already there
       setRecentCodes((prev) => {
         if (prev.includes(code)) return prev;
         const updated = [code, ...prev];
@@ -90,7 +81,6 @@ export default function App() {
     }
   };
 
-  // When the page first loads or refreshes, automatically load analytics for the last created short link
   useEffect(() => {
     try {
       const savedCodes: string[] = JSON.parse(localStorage.getItem('pulselink_recent_codes') || '[]');
@@ -107,25 +97,74 @@ export default function App() {
     }
   }, []);
 
-  // Polling: automatically re-fetch analytics every 3 seconds if live auto-refresh toggle is on
+  // Poll analytics every 3s when live mode is toggled on
   useEffect(() => {
     if (!autoRefresh) return;
     const iv = setInterval(() => fetchAnalytics(activeCode, true), 3000);
     return () => clearInterval(iv);
   }, [autoRefresh, activeCode]);
 
-  // Test click: trigger a real redirect to test the full pipeline (Rate Limiter -> Redis -> BullMQ -> PostgreSQL)
+  // Simulate a redirect click to test the pipeline
   const handleSimulateClick = async () => {
     setIsSimulating(true);
     try {
       await fetch(`${API_BASE}/${activeCode}`, { method: 'GET', redirect: 'follow' });
-      // Why 400ms delay: Gives BullMQ background worker enough time to consume the job and write to PostgreSQL before re-fetching
+      // Brief delay to allow background queue worker to write to Postgres
       setTimeout(() => {
         fetchAnalytics(activeCode, true);
         setIsSimulating(false);
       }, 400);
     } catch {
       setIsSimulating(false);
+    }
+  };
+
+  const handleDeleteUrl = async (code: string) => {
+    if (!code) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete /${code}?\n\nThis will permanently remove the short link, invalidate its Redis cache, and purge all click analytics from the database.`
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    setError('');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/urls/${code}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to delete short URL');
+      }
+
+      const updatedCodes = recentCodes.filter((c) => c !== code);
+      setRecentCodes(updatedCodes);
+      localStorage.setItem('pulselink_recent_codes', JSON.stringify(updatedCodes));
+
+      const lastCreated = localStorage.getItem('pulselink_last_created_code');
+      if (lastCreated === code) {
+        localStorage.removeItem('pulselink_last_created_code');
+        if (updatedCodes.length > 0) {
+          localStorage.setItem('pulselink_last_created_code', updatedCodes[0]);
+        }
+      }
+
+      if (updatedCodes.length > 0) {
+        fetchAnalytics(updatedCodes[0]);
+      } else {
+        setActiveCode('');
+        setAnalytics(null);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to delete short URL');
+      }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -139,13 +178,11 @@ export default function App() {
       />
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 flex flex-col gap-4">
-        {/* URL Shortener input toolbar and inspect chips */}
         <UrlShortener
           activeCode={activeCode}
           recentCodes={recentCodes}
           onSelectCode={(code: string) => fetchAnalytics(code)}
           onUrlCreated={(code: string) => {
-            // Save this new code as the last created so page refresh always returns here
             localStorage.setItem('pulselink_last_created_code', code);
             setRecentCodes((prev) => {
               const updated = [code, ...prev.filter((c) => c !== code)];
@@ -157,7 +194,6 @@ export default function App() {
           apiBase={API_BASE}
         />
 
-        {/* Analytics section header */}
         {analytics && (
           <div className="flex items-center justify-between border-b border-slate-200 pb-2 pt-1 gap-2 min-w-0">
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -165,6 +201,17 @@ export default function App() {
               <code className="text-xs font-mono font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md shrink-0">
                 /{activeCode}
               </code>
+
+              <button
+                onClick={() => handleDeleteUrl(activeCode)}
+                disabled={isDeleting}
+                className="flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 border border-red-200 px-2 py-0.5 rounded-md transition cursor-pointer disabled:opacity-50 shrink-0"
+                title={`Delete /${activeCode} and purge telemetry`}
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>{isDeleting ? 'Deleting…' : 'Delete'}</span>
+              </button>
+
               {analytics?.url?.originalUrl && (
                 <a
                   href={analytics.url.originalUrl}
@@ -181,7 +228,7 @@ export default function App() {
 
             <button
               onClick={handleManualRefresh}
-              disabled={isLoading || isRefreshing}
+              disabled={isLoading || isRefreshing || isDeleting}
               className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-blue-600 hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 hover:border-slate-300 transition cursor-pointer disabled:opacity-50 shrink-0"
               title="Reload latest analytics and recent links"
             >
@@ -190,20 +237,19 @@ export default function App() {
             </button>
           </div>
         )}
+
         {error && (
           <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
         )}
 
         {analytics && (
           <>
-            {/* KPI Cards */}
             <AnalyticsSummary
               summary={analytics.summary}
               countries={analytics.countries}
               devices={analytics.devices}
             />
 
-            {/* Charts */}
             <AnalyticsCharts
               timeline={analytics.timeline}
               countries={analytics.countries}
@@ -229,7 +275,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-slate-200 py-3 text-center text-xs text-slate-400 bg-white">
         PulseLink Enterprise Telemetry • Node.js • PostgreSQL • Redis • BullMQ • React
       </footer>

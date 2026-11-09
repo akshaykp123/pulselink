@@ -14,13 +14,11 @@ interface StatItem {
   color: string;
 }
 
-// Top-level KPI summary strip (Total Clicks, Unique Visitors, Top Country, Primary Device)
 export default function AnalyticsSummary({
   summary,
   countries,
   devices,
 }: AnalyticsSummaryProps): React.JSX.Element {
-  // Extract key summary metrics for display
   const stats: StatItem[] = [
     {
       label: 'Total Clicks',
@@ -31,7 +29,7 @@ export default function AnalyticsSummary({
     {
       label: 'Unique Visitors',
       value: summary?.uniqueVisitors ?? 0,
-      sub: 'By IP hash', // Cryptographic uniqueness: counts distinct SHA-256 IP hashes without storing plain personal data
+      sub: 'By visitor hash',
       color: 'text-indigo-600',
     },
     {
@@ -49,7 +47,6 @@ export default function AnalyticsSummary({
   ];
 
   return (
-    // Responsive grid: 4 columns with vertical dividers on desktop, wraps into a clean 2x2 grid on mobile devices
     <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 overflow-hidden">
       {stats.map((s, i) => (
         <div key={i} className="px-5 sm:px-6 py-4 sm:py-5 min-w-0">
@@ -59,7 +56,7 @@ export default function AnalyticsSummary({
           <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-none truncate tabular-nums my-1">
             {s.value}
           </p>
-          <p className="text-xs text-slate-400 mt-1 truncate">
+          <p className="text-xs text-slate-400 truncate mt-1">
             {s.sub}
           </p>
         </div>

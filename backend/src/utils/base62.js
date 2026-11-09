@@ -1,18 +1,18 @@
-// The 62 URL-safe characters: 0-9 (10) + a-z (26) + A-Z (26) = 62 characters
 const ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const BASE = BigInt(ALPHABET.length); // 62
+const BASE = BigInt(ALPHABET.length);
 
-// Total combinations for a strictly 6-character slug: 62^6 = 56,800,235,584
-const MAX_6_CHAR_COMBINATIONS = 62n ** 6n; // 56,800,235,584n
+// 62^6 total combinations for a 6-character slug (56,800,235,584)
+const MAX_6_CHAR_COMBINATIONS = 62n ** 6n;
 
-// A large prime number coprime to 62^6 (guarantees a 1-to-1 bijective permutation with ZERO collisions)
+// Coprime multiplier and offset for linear congruential permutation.
+// Because gcd(PERMUTATION_PRIME, MAX_6_CHAR_COMBINATIONS) === 1, this produces
+// a 1-to-1 bijection with zero collisions across the entire 6-character space.
 const PERMUTATION_PRIME = 38472910483n;
 const PERMUTATION_OFFSET = 19283746517n;
 
 /**
- * Mathematically scrambles an auto-incrementing database ID into an unpredictable
- * pseudo-random integer inside the 6-character space [0, 62^6 - 1].
- * Guarantees zero collisions via modular arithmetic.
+ * Scrambles an auto-incrementing ID into a non-sequential integer
+ * within [0, 62^6 - 1] to prevent predictable sequential URLs.
  */
 export function scrambleId(id) {
   const n = BigInt(id);
@@ -20,32 +20,25 @@ export function scrambleId(id) {
 }
 
 /**
- * Converts a database numeric ID into a secure, scrambled, strictly 6-character Base62 slug.
- * Examples:
- *   ID 1 -> "12J2TS" (6 chars, unpredictable)
- *   ID 2 -> "H2psq7" (6 chars, unpredictable)
- *   ID 3 -> "n25RWm" (6 chars, unpredictable)
+ * Encodes a numeric ID into a scrambled, 6-character Base62 string.
  */
 export function encodeBase62(num) {
-  // 1. Scramble the sequential ID into pseudo-random space
   let n = scrambleId(num);
-
   if (n === 0n) return "000000";
 
   let result = "";
-  // 2. Base62 division loop
   while (n > 0n) {
     const remainder = Number(n % BASE);
     result = ALPHABET[remainder] + result;
     n = n / BASE;
   }
 
-  // 3. Strictly enforce 6 characters length
+  // Pad with leading zeros to maintain fixed 6-character length
   return result.padStart(6, "0");
 }
 
 /**
- * Converts a Base62 string back into its scrambled BigInt value
+ * Decodes a Base62 string back to its BigInt representation.
  */
 export function decodeBase62(str) {
   let result = 0n;

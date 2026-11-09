@@ -40,11 +40,9 @@ export default function AnalyticsCharts({
   browsers = [],
   referrers = [],
 }: AnalyticsChartsProps) {
-  // Current active breakdown tab (Countries, Devices, Browsers, or Referrers)
   const [activeTab, setActiveTab] = useState<TabType>('Countries');
 
-  // Why data normalization: Each tab has different SQL column names (country, device_type, browser, referrer).
-  // We map them into uniform [{ label, count }] objects so a single Recharts <BarChart> component can render all 4 views interchangeably
+  // Normalize different metric structures into uniform { label, count } format
   const activeList: BreakdownItem[] =
     activeTab === 'Countries'
       ? countries.map((c) => ({ label: c.country || 'Unknown', count: Number(c.clicks) }))
@@ -54,13 +52,11 @@ export default function AnalyticsCharts({
       ? browsers.map((b) => ({ label: b.browser || 'Unknown', count: Number(b.clicks) }))
       : referrers.map((r) => ({ label: r.referrer || 'Direct', count: Number(r.clicks) }));
 
-  // Calculate sum of clicks in the selected tab to compute relative percentage share in the tooltip
   const totalListClicks = activeList.reduce((acc, curr) => acc + curr.count, 0);
 
   return (
     <>
       <style>{`
-        /* 2-column grid on desktop, single column on mobile */
         .charts-responsive-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -74,9 +70,8 @@ export default function AnalyticsCharts({
         }
       `}</style>
       <div className="charts-responsive-grid">
-        {/* ── LEFT: Hourly Traffic Area Chart ── */}
+        {/* Hourly Traffic Area Chart */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col min-w-0 shadow-xs" style={{ height: '280px' }}>
-          {/* Card header */}
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 shrink-0">
             <div>
               <p className="text-sm font-bold text-slate-800">Click Traffic</p>
@@ -87,7 +82,6 @@ export default function AnalyticsCharts({
             </span>
           </div>
 
-          {/* Chart area */}
           <div className="flex-1 w-full min-h-0">
             {timeline && timeline.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -150,9 +144,8 @@ export default function AnalyticsCharts({
           </div>
         </div>
 
-        {/* ── RIGHT: Breakdown Bar Chart ── */}
+        {/* Breakdown Bar Chart */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col min-w-0 shadow-xs" style={{ height: '280px' }}>
-          {/* Card header with tabs — clean layout, tabs fully contained */}
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 shrink-0 gap-2">
             <div className="flex items-center gap-1.5 shrink-0">
               <p className="text-sm font-bold text-slate-800">Breakdown</p>
@@ -163,7 +156,6 @@ export default function AnalyticsCharts({
               )}
             </div>
 
-            {/* Tab pills container — tight padding so all 4 tabs sit inside the pill */}
             <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 border border-slate-200/80 shrink-0">
               {TABS.map((tab) => (
                 <button
@@ -181,11 +173,9 @@ export default function AnalyticsCharts({
             </div>
           </div>
 
-          {/* Bar chart area */}
           <div className="flex-1 w-full min-h-0 pt-1">
             {activeList.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                {/* Why layout="vertical": Places category names on the Y-axis so long text (e.g. 'United States') never overlaps or truncates */}
                 <BarChart
                   data={activeList}
                   layout="vertical"
@@ -205,7 +195,6 @@ export default function AnalyticsCharts({
                     width={95}
                     tick={{ fontSize: 11, fill: '#334155', fontWeight: 500 }}
                   />
-                  {/* Tooltip computes dynamic percentage share: (value / totalListClicks) * 100 */}
                   <Tooltip
                     contentStyle={tooltipStyle}
                     cursor={{ fill: '#f8fafc' }}

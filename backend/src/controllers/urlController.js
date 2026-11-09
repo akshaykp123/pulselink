@@ -5,65 +5,90 @@ import { encodeBase62 } from '../utils/base62.js';
 const CACHE_TTL_SECONDS = 86400; // 24h
 const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
 
-// Shorten a URL (supports custom alias or auto-generated Base62 code)
+// Create short URL (supports custom alias or auto-generated Base62 slug)
 export async function shortenUrl(req, res) {
   try {
     const { originalUrl, customAlias } = req.body;
     if (!originalUrl) return res.status(400).json({ error: 'originalUrl is required' });
 
-    // Validate that the provided string is a valid URL
-    try { new URL(originalUrl); } catch {
+    try {
+      new URL(originalUrl);
+    } catch {
       return res.status(400).json({ error: 'Invalid URL format' });
     }
 
-    // Branch A: User provided a custom alias (e.g. /my-portfolio)
+    // Handle custom alias
     if (customAlias) {
-      // Check if alias or short code is already taken
-      const existing = await pool.query('SELECT id FROM urls WHERE custom_alias = $1 OR short_code = $1', [customAlias]);
-      if (existing.rows.length > 0) return res.status(409).json({ error: 'Custom alias is already taken' });
+      const existing = await pool.query(
+        'SELECT id FROM urls WHERE custom_alias = $1 OR short_code = $1',
+        [customAlias]
+      );
+      if (existing.rows.length > 0) {
+        return res.status(409).json({ error: 'Custom alias is already taken' });
+      }
 
-      // Save custom alias to PostgreSQL
       const insertResult = await pool.query(
-        `INSERT INTO urls (short_code, original_url, custom_alias) VALUES ($1, $2, $1) RETURNING id, short_code, original_url, created_at`,
+        `INSERT INTO urls (short_code, original_url, custom_alias)
+         VALUES ($1, $2, $1)
+         RETURNING id, short_code, original_url, created_at`,
         [customAlias, originalUrl]
       );
       const newUrl = insertResult.rows[0];
 
-      // Cache the new link in Redis so redirects are instantly fast from the start
-      await redis.set(`url:${newUrl.short_code}`, JSON.stringify({ id: newUrl.id, originalUrl: newUrl.original_url }), 'EX', CACHE_TTL_SECONDS);
+      await redis.set(
+        `url:${newUrl.short_code}`,
+        JSON.stringify({ id: newUrl.id, originalUrl: newUrl.original_url }),
+        'EX',
+        CACHE_TTL_SECONDS
+      );
 
-      return res.status(201).json({ shortCode: newUrl.short_code, shortUrl: `${BASE_URL}/${newUrl.short_code}`, originalUrl: newUrl.original_url, createdAt: newUrl.created_at });
+      return res.status(201).json({
+        shortCode: newUrl.short_code,
+        shortUrl: `${BASE_URL}/${newUrl.short_code}`,
+        originalUrl: newUrl.original_url,
+        createdAt: newUrl.created_at,
+      });
     }
 
-        // Branch B: Auto-generate code using atomic database sequence ID + Base62
-    // 1. Atomically reserve the next unique ID from the sequence (Prevents race conditions!)
+    // Auto-generate slug from Postgres sequence + Base62
     const seqResult = await pool.query(`SELECT nextval('urls_id_seq') AS id`);
     const generatedId = seqResult.rows[0].id;
-
-    // 2. Convert the numeric ID into a compact Base62 string
     const shortCode = encodeBase62(generatedId);
 
-    // 3. Insert directly with its permanent short code in a single atomic query
     const insertResult = await pool.query(
-      `INSERT INTO urls (id, short_code, original_url) VALUES ($1, $2, $3) RETURNING id, short_code, original_url, created_at`,
+      `INSERT INTO urls (id, short_code, original_url)
+       VALUES ($1, $2, $3)
+       RETURNING id, short_code, original_url, created_at`,
       [generatedId, shortCode, originalUrl]
     );
     const newUrl = insertResult.rows[0];
 
-    // 4. Pre-warm Redis cache so the very first click on this new link hits RAM immediately
-    await redis.set(`url:${newUrl.short_code}`, JSON.stringify({ id: newUrl.id, originalUrl: newUrl.original_url }), 'EX', CACHE_TTL_SECONDS);
+    // Pre-warm Redis cache for instant first redirect
+    await redis.set(
+      `url:${newUrl.short_code}`,
+      JSON.stringify({ id: newUrl.id, originalUrl: newUrl.original_url }),
+      'EX',
+      CACHE_TTL_SECONDS
+    );
 
-    return res.status(201).json({ shortCode: newUrl.short_code, shortUrl: `${BASE_URL}/${newUrl.short_code}`, originalUrl: newUrl.original_url, createdAt: newUrl.created_at });
+    return res.status(201).json({
+      shortCode: newUrl.short_code,
+      shortUrl: `${BASE_URL}/${newUrl.short_code}`,
+      originalUrl: newUrl.original_url,
+      createdAt: newUrl.created_at,
+    });
   } catch (error) {
     console.error('Error shortening URL:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 }
 
-// Fetch the 30 most recently created short links
+// Get recent short links
 export async function getRecentUrls(req, res) {
   try {
-    const result = await pool.query('SELECT id, short_code, original_url, clicks_count, created_at FROM urls ORDER BY created_at DESC LIMIT 30');
+    const result = await pool.query(
+      'SELECT id, short_code, original_url, clicks_count, created_at FROM urls ORDER BY created_at DESC LIMIT 30'
+    );
     return res.json(result.rows);
   } catch (error) {
     console.error('Error fetching recent URLs:', error);
@@ -71,39 +96,43 @@ export async function getRecentUrls(req, res) {
   }
 }
 
-// Fetch detailed telemetry analytics for a specific short link
+// Fetch analytics breakdowns for a short link
 export async function getUrlAnalytics(req, res) {
   try {
     const { code } = req.params;
 
-    // 1. Find the URL record by short code or custom alias
-    const urlResult = await pool.query('SELECT id, short_code, original_url, clicks_count, created_at FROM urls WHERE short_code = $1 OR custom_alias = $1', [code]);
-    if (urlResult.rows.length === 0) return res.status(404).json({ error: 'Short URL not found' });
+    const urlResult = await pool.query(
+      'SELECT id, short_code, original_url, clicks_count, created_at FROM urls WHERE short_code = $1 OR custom_alias = $1',
+      [code]
+    );
+    if (urlResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Short URL not found' });
+    }
 
     const urlRecord = urlResult.rows[0];
     const urlId = urlRecord.id;
 
-    // 2. Run all analytical aggregation queries in parallel using Promise.all for speed
-    // Why Promise.all: Running 6 queries sequentially takes ~60ms. Running them in parallel completes in ~12ms
+    // Run aggregations in parallel for low latency
     const [summaryStats, countryStats, deviceStats, browserStats, timeSeriesStats, referrerStats] = await Promise.all([
-      // Total clicks and distinct IP hash count (calculates unique visitors without storing plain IPs)
       pool.query(`SELECT COUNT(*)::int AS total_clicks, COUNT(DISTINCT ip_hash)::int AS unique_visitors FROM clicks WHERE url_id = $1`, [urlId]),
-      // Top visitor countries
       pool.query(`SELECT country, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY country ORDER BY clicks DESC LIMIT 6`, [urlId]),
-      // Device breakdown (Desktop, Mobile, Tablet)
       pool.query(`SELECT device_type, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY device_type ORDER BY clicks DESC`, [urlId]),
-      // Browser breakdown (Chrome, Safari, Firefox, Edge)
       pool.query(`SELECT browser, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY browser ORDER BY clicks DESC LIMIT 5`, [urlId]),
-      // 24-hour click distribution grouped by hour (date_trunc('hour') rounds minutes to 00 for clean timeline bars)
       pool.query(`SELECT to_char(date_trunc('hour', clicked_at), 'YYYY-MM-DD HH24:00') AS time_bucket, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY time_bucket ORDER BY time_bucket ASC LIMIT 24`, [urlId]),
-      // Referrers (Direct, Google, LinkedIn, etc.)
       pool.query(`SELECT referrer, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY referrer ORDER BY clicks DESC LIMIT 6`, [urlId]),
     ]);
 
-    // 3. Return structured payload for the frontend dashboard
     return res.json({
-      url: { shortCode: urlRecord.short_code, shortUrl: `${BASE_URL}/${urlRecord.short_code}`, originalUrl: urlRecord.original_url, createdAt: urlRecord.created_at },
-      summary: { totalClicks: summaryStats.rows[0]?.total_clicks || 0, uniqueVisitors: summaryStats.rows[0]?.unique_visitors || 0 },
+      url: {
+        shortCode: urlRecord.short_code,
+        shortUrl: `${BASE_URL}/${urlRecord.short_code}`,
+        originalUrl: urlRecord.original_url,
+        createdAt: urlRecord.created_at,
+      },
+      summary: {
+        totalClicks: summaryStats.rows[0]?.total_clicks || 0,
+        uniqueVisitors: summaryStats.rows[0]?.unique_visitors || 0,
+      },
       countries: countryStats.rows,
       devices: deviceStats.rows,
       browsers: browserStats.rows,
@@ -113,5 +142,38 @@ export async function getUrlAnalytics(req, res) {
   } catch (error) {
     console.error('Error fetching analytics:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+// Delete a short URL, evict cache, and cascade-delete clicks
+export async function deleteUrl(req, res) {
+  try {
+    const { code } = req.params;
+
+    // Deleting from urls cascade-deletes clicks via foreign key ON DELETE CASCADE
+    const result = await pool.query(
+      'DELETE FROM urls WHERE short_code = $1 OR custom_alias = $1 RETURNING id, short_code, custom_alias',
+      [code]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Short URL not found' });
+    }
+
+    const deleted = result.rows[0];
+
+    // Evict cached redirect from Redis
+    await redis.del(`url:${deleted.short_code}`);
+    if (deleted.custom_alias) {
+      await redis.del(`url:${deleted.custom_alias}`);
+    }
+
+    return res.json({
+      message: 'Short URL and all associated telemetry deleted successfully',
+      shortCode: deleted.short_code,
+    });
+  } catch (error) {
+    console.error('Error deleting short URL:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
