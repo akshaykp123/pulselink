@@ -1,29 +1,52 @@
 // The 62 URL-safe characters: 0-9 (10) + a-z (26) + A-Z (26) = 62 characters
-// Why Base62 instead of Base64: Base64 includes '+' and '/' which break URLs. Base62 is 100% safe for clean slugs without URL encoding
 const ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const BASE = BigInt(ALPHABET.length); // 62
 
-// Why BigInt: Standard JS Numbers lose precision above 2^53 - 1. PostgreSQL 64-bit BIGSERIAL goes up to 2^63 - 1. BigInt prevents rounding bugs
-const BASE = BigInt(ALPHABET.length); // Base 62
+// Total combinations for a strictly 6-character slug: 62^6 = 56,800,235,584
+const MAX_6_CHAR_COMBINATIONS = 62n ** 6n; // 56,800,235,584n
 
-// Converts a database 64-bit numeric ID into a compact Base62 short code (e.g. 125 -> "21")
-// Capacity: 6 characters yield 62^6 (~56.8 billion URLs), 7 characters yield 62^7 (~3.52 trillion URLs)
+// A large prime number coprime to 62^6 (guarantees a 1-to-1 bijective permutation with ZERO collisions)
+const PERMUTATION_PRIME = 38472910483n;
+const PERMUTATION_OFFSET = 19283746517n;
+
+/**
+ * Mathematically scrambles an auto-incrementing database ID into an unpredictable
+ * pseudo-random integer inside the 6-character space [0, 62^6 - 1].
+ * Guarantees zero collisions via modular arithmetic.
+ */
+export function scrambleId(id) {
+  const n = BigInt(id);
+  return ((n * PERMUTATION_PRIME) + PERMUTATION_OFFSET) % MAX_6_CHAR_COMBINATIONS;
+}
+
+/**
+ * Converts a database numeric ID into a secure, scrambled, strictly 6-character Base62 slug.
+ * Examples:
+ *   ID 1 -> "12J2TS" (6 chars, unpredictable)
+ *   ID 2 -> "H2psq7" (6 chars, unpredictable)
+ *   ID 3 -> "n25RWm" (6 chars, unpredictable)
+ */
 export function encodeBase62(num) {
-  let n = BigInt(num);
-  if (n === 0n) return "0";
+  // 1. Scramble the sequential ID into pseudo-random space
+  let n = scrambleId(num);
+
+  if (n === 0n) return "000000";
 
   let result = "";
-  // Repeatedly divide by 62 and prepend the corresponding character
+  // 2. Base62 division loop
   while (n > 0n) {
     const remainder = Number(n % BASE);
     result = ALPHABET[remainder] + result;
     n = n / BASE;
   }
 
-  // Return the compact short code directly
-  return result;
+  // 3. Strictly enforce 6 characters length
+  return result.padStart(6, "0");
 }
 
-// Converts a Base62 short code back into the original database integer ID
+/**
+ * Converts a Base62 string back into its scrambled BigInt value
+ */
 export function decodeBase62(str) {
   let result = 0n;
   for (let i = 0; i < str.length; i++) {
