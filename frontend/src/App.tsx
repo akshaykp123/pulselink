@@ -191,7 +191,7 @@ export default function App() {
         isSimulating={isSimulating}
       />
 
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 flex flex-col gap-5">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 flex flex-col gap-5">
         <UrlShortener
           activeCode={activeCode}
           recentCodes={recentCodes}

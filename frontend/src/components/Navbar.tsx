@@ -16,7 +16,7 @@ export default function Navbar({
 }: NavbarProps): React.JSX.Element {
   return (
     <header className="border-b border-slate-200 bg-white sticky top-0 z-50 h-16 sm:h-[68px] flex items-center">
-      <div className="max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 min-w-0">
+      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 min-w-0">
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60"></span>

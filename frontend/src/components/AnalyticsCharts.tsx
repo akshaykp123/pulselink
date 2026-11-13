@@ -71,7 +71,7 @@ export default function AnalyticsCharts({
       `}</style>
       <div className="charts-responsive-grid">
         {/* Hourly Traffic Area Chart */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col min-w-0 shadow-xs" style={{ height: '320px' }}>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col min-w-0 shadow-xs" style={{ height: '300px' }}>
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 shrink-0">
             <div>
               <p className="text-sm font-bold text-slate-800">Click Traffic</p>
@@ -145,7 +145,7 @@ export default function AnalyticsCharts({
         </div>
 
         {/* Breakdown Bar Chart */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col min-w-0 shadow-xs" style={{ height: '320px' }}>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col min-w-0 shadow-xs" style={{ height: '300px' }}>
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 shrink-0 gap-2">
             <div className="flex items-center gap-1.5 shrink-0">
               <p className="text-sm font-bold text-slate-800">Breakdown</p>
