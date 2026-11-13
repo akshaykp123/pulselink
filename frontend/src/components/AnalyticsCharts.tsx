@@ -60,10 +60,10 @@ export default function AnalyticsCharts({
         .charts-responsive-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 12px;
+          gap: 16px;
           width: 100%;
         }
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .charts-responsive-grid {
             grid-template-columns: 1fr;
           }
@@ -71,7 +71,7 @@ export default function AnalyticsCharts({
       `}</style>
       <div className="charts-responsive-grid">
         {/* Hourly Traffic Area Chart */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col min-w-0 shadow-xs" style={{ height: '280px' }}>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col min-w-0 shadow-xs" style={{ height: '320px' }}>
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 shrink-0">
             <div>
               <p className="text-sm font-bold text-slate-800">Click Traffic</p>
@@ -145,7 +145,7 @@ export default function AnalyticsCharts({
         </div>
 
         {/* Breakdown Bar Chart */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col min-w-0 shadow-xs" style={{ height: '280px' }}>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col min-w-0 shadow-xs" style={{ height: '320px' }}>
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 shrink-0 gap-2">
             <div className="flex items-center gap-1.5 shrink-0">
               <p className="text-sm font-bold text-slate-800">Breakdown</p>
@@ -161,7 +161,7 @@ export default function AnalyticsCharts({
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-2 py-0.5 rounded-md text-[11px] font-semibold transition cursor-pointer shrink-0 ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-semibold transition cursor-pointer shrink-0 ${
                     activeTab === tab
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-500 hover:text-slate-800'
@@ -180,7 +180,7 @@ export default function AnalyticsCharts({
                   data={activeList}
                   layout="vertical"
                   margin={{ top: 4, right: 20, left: 10, bottom: 4 }}
-                  barSize={12}
+                  barSize={14}
                   barCategoryGap="24%"
                 >
                   <XAxis

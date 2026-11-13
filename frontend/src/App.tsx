@@ -191,7 +191,7 @@ export default function App() {
         isSimulating={isSimulating}
       />
 
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-8 flex flex-col gap-4">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 flex flex-col gap-5">
         <UrlShortener
           activeCode={activeCode}
           recentCodes={recentCodes}
@@ -209,17 +209,17 @@ export default function App() {
         />
 
         {analytics && (
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2 pt-1 gap-2 min-w-0">
-            <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 pt-1 gap-2 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <span className="text-xs font-bold text-slate-600 uppercase tracking-wider shrink-0">Analytics</span>
-              <code className="text-xs font-mono font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md shrink-0">
+              <code className="text-xs font-mono font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-md shrink-0">
                 /{activeCode}
               </code>
 
               <button
                 onClick={() => handleDeleteUrl(activeCode)}
                 disabled={isDeleting}
-                className="flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 border border-red-200 px-2 py-0.5 rounded-md transition cursor-pointer disabled:opacity-50 shrink-0"
+                className="flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 border border-red-200 px-2.5 py-0.5 rounded-md transition cursor-pointer disabled:opacity-50 shrink-0"
                 title={`Delete /${activeCode} and purge telemetry`}
               >
                 <Trash2 className="w-3 h-3" />
@@ -232,9 +232,9 @@ export default function App() {
                   target="_blank"
                   rel="noreferrer"
                   title={analytics.url.originalUrl}
-                  className="hidden sm:flex items-center gap-1 text-xs text-slate-400 hover:text-blue-600 transition max-w-[280px] truncate min-w-0"
+                  className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-blue-600 transition max-w-md lg:max-w-xl truncate min-w-0"
                 >
-                  <ExternalLink className="w-3 h-3 shrink-0" />
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">{analytics.url.originalUrl}</span>
                 </a>
               )}
@@ -243,11 +243,11 @@ export default function App() {
             <button
               onClick={handleManualRefresh}
               disabled={isLoading || isRefreshing || isDeleting}
-              className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-blue-600 hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 hover:border-slate-300 transition cursor-pointer disabled:opacity-50 shrink-0"
+              className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-blue-600 hover:bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200 hover:border-slate-300 transition cursor-pointer disabled:opacity-50 shrink-0 font-medium"
               title="Reload latest analytics and recent links"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isLoading ? 'animate-spin text-blue-600' : ''}`} />
-              <span className="font-medium">{isRefreshing ? 'Refreshing…' : 'Refresh'}</span>
+              <span>{isRefreshing ? 'Refreshing…' : 'Refresh'}</span>
             </button>
           </div>
         )}
@@ -275,21 +275,21 @@ export default function App() {
         )}
 
         {!analytics && !error && !isLoading && (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 sm:p-12 text-center shadow-xs flex flex-col items-center justify-center my-2">
-            <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-3 shadow-xs">
-              <LinkIcon className="w-5 h-5" />
+          <div className="bg-white border border-slate-200 rounded-xl p-8 sm:p-14 text-center shadow-xs flex flex-col items-center justify-center my-3">
+            <div className="w-14 h-14 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-3.5 shadow-xs">
+              <LinkIcon className="w-6 h-6" />
             </div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-800 mb-1">
+            <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-1">
               You haven't created any links yet
             </h3>
-            <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-500 max-w-sm leading-relaxed">
               Paste a long URL above and click <span className="font-semibold text-blue-600">Shorten →</span> to generate your first link and view real-time click telemetry.
             </p>
           </div>
         )}
       </main>
 
-      <footer className="border-t border-slate-200 py-3 text-center text-xs text-slate-400 bg-white">
+      <footer className="border-t border-slate-200 py-4 text-center text-xs text-slate-400 bg-white">
         PulseLink Enterprise Telemetry • Node.js • PostgreSQL • Redis • BullMQ • React
       </footer>
     </div>
