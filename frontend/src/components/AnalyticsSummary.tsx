@@ -67,7 +67,7 @@ export default function AnalyticsSummary({
     <div className="bg-[var(--surface)] rounded-[var(--radius-panel)] border border-[var(--border)] shadow-[var(--shadow-card)] grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] overflow-hidden transition-smooth">
       {stats.map((s, i) => (
         <div key={i} className="px-5 py-4 sm:px-6 sm:py-5 min-w-0 flex flex-col justify-between">
-          <p className="text-xs font-medium text-[var(--text-muted)] tracking-tight truncate mb-2">
+          <p className="text-[12.5px] font-medium text-[var(--text-secondary)] tracking-tight truncate mb-2">
             {s.label}
           </p>
           <div className="my-1 flex items-baseline truncate">
@@ -76,12 +76,12 @@ export default function AnalyticsSummary({
                 {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
               </span>
             ) : (
-              <span className="text-[21px] font-semibold text-[var(--text-primary)] leading-tight truncate tracking-tight">
+              <span className="text-[22px] font-semibold text-[var(--text-primary)] leading-tight truncate tracking-tight">
                 {s.value}
               </span>
             )}
           </div>
-          <p className="text-[11px] text-[var(--text-muted)] truncate mt-2 font-normal">
+          <p className="text-xs text-[var(--text-tertiary)] truncate mt-2 font-normal">
             {s.sub}
           </p>
         </div>

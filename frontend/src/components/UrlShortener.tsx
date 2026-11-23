@@ -80,22 +80,26 @@ export default function UrlShortener({
   }, [recentCodes, searchFilter]);
 
   return (
-    <aside className="w-[280px] shrink-0 h-full flex flex-col bg-[var(--surface)] border-r border-[var(--border)] select-none">
-      {/* ── 1. Top Logo Header with Pulse Line Mark ── */}
-      <div className="h-12 border-b border-[var(--border)] px-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          {/* Small pulse line logo mark */}
-          <div className="w-6 h-6 rounded-[var(--radius-control)] bg-[var(--accent)]/15 border border-[var(--accent)]/30 flex items-center justify-center text-[var(--accent)]">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <aside className="w-[310px] shrink-0 h-full flex flex-col bg-[var(--sidebar-bg)] border-r border-[var(--sidebar-border)] select-none">
+      {/* ── 1. Top Logo Header (72px height, aligned with top bar) ── */}
+      <div className="h-[72px] border-b border-[var(--border)] px-4 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2.5">
+          {/* Logo tile: 40px, 8px radius, teal tint, 20px pulse icon */}
+          <div className="w-10 h-10 rounded-[8px] bg-[var(--accent-tint)] border border-[var(--accent-subtle)] flex items-center justify-center text-[var(--accent-text)] shadow-xs shrink-0">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
           </div>
-          <span className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
-            PulseLink
-          </span>
-          <span className="text-[11px] font-normal text-[var(--text-muted)] tracking-wider">
-            CONSOLE
-          </span>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-[21px] font-semibold tracking-tight text-[var(--text-primary)]">
+              PulseLink
+            </span>
+            {/* CONSOLE: 11px uppercase label with 0.08em tracking in a subtle bordered chip */}
+            <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--text-secondary)] px-1.5 py-0.5 rounded-[4px] border border-[var(--border)] bg-[var(--surface-raised)] select-none">
+              CONSOLE
+            </span>
+          </div>
         </div>
 
         {/* Mobile close button */}
@@ -103,60 +107,60 @@ export default function UrlShortener({
           <button
             type="button"
             onClick={onCloseMobileDrawer}
-            className="md:hidden p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[var(--radius-control)]"
+            className="md:hidden p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-[var(--radius-control)] hover:bg-[var(--surface-raised)] cursor-pointer"
             title="Close navigation"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         )}
       </div>
 
       {/* ── 2. Shorten Input Form Section ── */}
-      <div className="p-3.5 border-b border-[var(--border)] shrink-0 space-y-2.5">
-        <form onSubmit={handleShorten} className="space-y-2">
-          {/* Destination URL */}
+      <div className="p-4 border-b border-[var(--border)] shrink-0 space-y-3">
+        <form onSubmit={handleShorten} className="space-y-2.5">
+          {/* Destination URL Input (White background on light, defined border) */}
           <div className="relative flex items-center">
-            <LinkIcon className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-2.5 pointer-events-none" />
+            <LinkIcon className="w-3.5 h-3.5 text-[var(--text-secondary)] absolute left-3 pointer-events-none" />
             <input
               type="url"
               required
-              placeholder="Paste long URL…"
+              placeholder="Paste long URL to shorten…"
               value={originalUrl}
               onChange={(e) => setOriginalUrl(e.target.value)}
-              className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius-control)] pl-8 pr-2.5 py-1.5 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus-ring transition-smooth"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-[var(--radius-control)] pl-8 pr-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--input-placeholder)] focus:outline-none focus-ring transition-smooth shadow-2xs"
             />
           </div>
 
           {/* Custom Slug with prefix */}
-          <div className="flex items-center rounded-[var(--radius-control)] bg-[var(--surface-raised)] border border-[var(--border)] px-2.5 py-1.5 text-xs font-mono">
-            <span className="text-[var(--text-muted)] select-none">
+          <div className="flex items-center rounded-[var(--radius-control)] bg-[var(--input-bg)] border border-[var(--input-border)] px-3 py-1.5 text-xs font-mono shadow-2xs">
+            <span className="text-[var(--text-tertiary)] select-none shrink-0 font-medium">
               slug:
             </span>
             <input
               type="text"
-              placeholder="custom-slug"
+              placeholder="custom-alias"
               value={customAlias}
               onChange={(e) => setCustomAlias(e.target.value)}
-              className="w-full bg-transparent pl-1.5 text-xs font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+              className="w-full bg-transparent pl-1.5 text-xs font-mono text-[var(--text-primary)] placeholder:text-[var(--input-placeholder)] focus:outline-none"
             />
           </div>
 
-          {/* Teal Primary Shorten Button */}
+          {/* Primary Shorten Button (White text on light, weight 600) */}
           <button
             type="submit"
             disabled={isShortening}
-            className="w-full h-8 rounded-[var(--radius-control)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[#0A0F12] dark:text-[#0A0F12] text-xs font-semibold tracking-tight transition-smooth shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 focus-ring"
+            className="w-full h-9 rounded-[var(--radius-control)] bg-[var(--accent-btn)] hover:bg-[var(--accent-btn-hover)] text-[var(--accent-btn-text)] text-xs font-semibold tracking-tight transition-smooth shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 focus-ring"
           >
             {isShortening ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
             <span>Shorten Link</span>
           </button>
         </form>
 
-        {/* Shorten Success Card */}
+        {/* Shorten Success Feedback Pill */}
         {createdUrl && (
-          <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius-control)] p-2 space-y-1.5 animate-in fade-in duration-150">
+          <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius-control)] p-2.5 space-y-2 animate-in fade-in duration-150">
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-[var(--text-primary)] truncate font-medium text-[11px]">
+              <span className="text-[var(--text-primary)] truncate font-semibold text-xs">
                 /{createdUrl.shortCode}
               </span>
               <div className="flex items-center gap-1 shrink-0">
@@ -164,16 +168,16 @@ export default function UrlShortener({
                   type="button"
                   onClick={() => copyLink(createdUrl.shortUrl)}
                   title="Copy link"
-                  className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-smooth cursor-pointer"
+                  className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-smooth cursor-pointer"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
                 <a
                   href={createdUrl.shortUrl}
                   target="_blank"
                   rel="noreferrer"
                   title="Open link"
-                  className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-smooth"
+                  className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-smooth"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
@@ -181,7 +185,7 @@ export default function UrlShortener({
                   type="button"
                   onClick={() => setShowQR(true)}
                   title="Show QR Code"
-                  className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-smooth cursor-pointer"
+                  className="p-1 rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface)] transition-smooth cursor-pointer"
                 >
                   <QrCode className="w-3.5 h-3.5" />
                 </button>
@@ -190,45 +194,46 @@ export default function UrlShortener({
           </div>
         )}
 
-        {/* Error message */}
+        {/* Error notification */}
         {error && (
-          <div className="flex items-center gap-1.5 text-[11px] text-rose-500 bg-rose-500/10 px-2 py-1 rounded-[var(--radius-control)] border border-rose-500/20">
-            <AlertCircle className="w-3 h-3 shrink-0" />
+          <div className="flex items-center gap-1.5 text-[11.5px] text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1.5 rounded-[var(--radius-control)] border border-rose-500/20 font-medium">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span className="truncate">{error}</span>
           </div>
         )}
       </div>
 
-      {/* ── 3. Scrollable List of Links with "Jump to slug" Search ── */}
-      <div className="p-3 pb-1.5 shrink-0">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+      {/* ── 3. Scrollable Links Section with "Jump to slug" Search ── */}
+      <div className="p-3.5 pb-2 shrink-0 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
             Your Links
           </span>
-          <span className="text-[11px] font-mono text-[var(--text-muted)]">
+          <span className="text-xs font-mono font-medium text-[var(--text-tertiary)] tabular-nums">
             {recentCodes.length}
           </span>
         </div>
 
-        {/* Jump to slug search */}
+        {/* Jump to slug search (White bg on light, defined border) */}
         <div className="relative flex items-center">
-          <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-2 pointer-events-none" />
+          <Search className="w-3.5 h-3.5 text-[var(--text-secondary)] absolute left-2.5 pointer-events-none" />
           <input
             type="text"
             placeholder="Jump to slug…"
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            className="w-full bg-[var(--surface-raised)] border border-[var(--border)] rounded-[var(--radius-control)] pl-7 pr-2.5 py-1 text-xs font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus-ring transition-smooth"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-[var(--radius-control)] pl-8 pr-2.5 py-1.5 text-xs font-mono text-[var(--text-primary)] placeholder:text-[var(--input-placeholder)] focus:outline-none focus-ring transition-smooth shadow-2xs"
           />
         </div>
       </div>
 
-      {/* Links List */}
-      <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5 custom-scrollbar min-h-0">
+      {/* Links List: Number-only click count on right, zero in tertiary, selected row teal */}
+      <div className="flex-1 overflow-y-auto px-2.5 pb-3 space-y-0.5 custom-scrollbar min-h-0">
         {filteredCodes.length > 0 ? (
           filteredCodes.map((code) => {
             const isSelected = activeCode === code;
             const clicks = linkClicksMap ? linkClicksMap[code] : undefined;
+            const countNum = clicks !== undefined ? Number(clicks) : 0;
 
             return (
               <button
@@ -240,19 +245,31 @@ export default function UrlShortener({
                 }}
                 className={`w-full h-9 px-2.5 rounded-[var(--radius-control)] text-xs font-mono transition-smooth flex items-center justify-between cursor-pointer group text-left ${
                   isSelected
-                    ? 'border-l-2 border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--text-primary)] font-medium pl-2 shadow-xs'
+                    ? 'border-l-2 border-[var(--accent-border)] bg-[var(--accent-tint)] text-[var(--text-primary)] font-semibold pl-2 shadow-xs'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] pl-2.5'
                 }`}
               >
-                <span className="truncate font-medium">/{code}</span>
-                <span className="text-[11px] font-sans tabular-nums text-[var(--text-muted)] shrink-0 ml-2">
-                  {clicks !== undefined ? `${clicks} ${clicks === 1 ? 'click' : 'clicks'}` : '0 clicks'}
+                <span className={`truncate ${isSelected ? 'font-semibold text-[var(--text-primary)]' : 'font-normal'}`}>
+                  /{code}
+                </span>
+
+                {/* Right: Click count as number only (tabular, 13px, secondary color; zero in tertiary; teal on active) */}
+                <span
+                  className={`text-[13px] font-sans tabular-nums shrink-0 ml-2 ${
+                    isSelected
+                      ? 'text-[var(--accent-text)] font-semibold'
+                      : countNum > 0
+                      ? 'text-[var(--text-secondary)] font-medium'
+                      : 'text-[var(--text-tertiary)]'
+                  }`}
+                >
+                  {countNum}
                 </span>
               </button>
             );
           })
         ) : (
-          <div className="py-8 text-center text-xs text-[var(--text-muted)]">
+          <div className="py-8 text-center text-xs text-[var(--text-secondary)]">
             {searchFilter ? 'No links found' : 'No shortened links yet'}
           </div>
         )}
@@ -263,10 +280,10 @@ export default function UrlShortener({
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-5 shadow-2xl text-center space-y-3.5 max-w-xs w-full transition-smooth">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">QR Code</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">QR Code</span>
               <button
                 onClick={() => setShowQR(false)}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer transition-smooth"
+                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-smooth"
               >
                 <X className="w-4 h-4" />
               </button>

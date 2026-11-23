@@ -139,8 +139,9 @@ export default function AnalyticsCharts({
         .charts-responsive-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 22px;
+          gap: 24px;
           width: 100%;
+          align-items: start;
         }
         @media (max-width: 860px) {
           .charts-responsive-grid {
@@ -154,7 +155,7 @@ export default function AnalyticsCharts({
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)] shrink-0">
             <div>
               <p className="text-xs font-semibold text-[var(--text-primary)]">Click Traffic</p>
-              <p className="text-[11px] text-[var(--text-muted)]">
+              <p className="text-[11px] text-[var(--text-secondary)] font-medium">
                 {activeRange === '24h'
                   ? 'Last 24 hours hourly volume'
                   : activeRange === '7d'
@@ -170,10 +171,10 @@ export default function AnalyticsCharts({
                   key={r}
                   type="button"
                   onClick={() => handleRangeSelect(r)}
-                  className={`px-2 py-0.5 rounded-[var(--radius-control)] text-[11px] font-medium transition-smooth cursor-pointer ${
+                  className={`px-2.5 py-0.5 rounded-[var(--radius-control)] text-[11px] font-semibold transition-smooth cursor-pointer ${
                     activeRange === r
                       ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   {r}
@@ -191,7 +192,7 @@ export default function AnalyticsCharts({
                 >
                   <defs>
                     <linearGradient id="trafficGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.10} />
+                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.14} />
                       <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
@@ -204,7 +205,7 @@ export default function AnalyticsCharts({
 
                   <XAxis
                     dataKey="time_bucket"
-                    tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                    tick={{ fontSize: 10.5, fill: 'var(--text-secondary)' }}
                     tickLine={false}
                     axisLine={{ stroke: 'var(--border)' }}
                     interval={activeRange === '7d' ? 0 : activeRange === '30d' ? 5 : 3}
@@ -226,7 +227,7 @@ export default function AnalyticsCharts({
                     }}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                    tick={{ fontSize: 10.5, fill: 'var(--text-secondary)' }}
                     tickLine={false}
                     axisLine={false}
                     allowDecimals={false}
@@ -266,7 +267,7 @@ export default function AnalyticsCharts({
 
                         return (
                           <div className="bg-[var(--surface)] border border-[var(--border)] shadow-xl rounded-[var(--radius-control)] px-3 py-2 text-xs transition-smooth">
-                            <p className="text-[11px] text-[var(--text-muted)] font-mono mb-1">{formattedLabel}</p>
+                            <p className="text-[11px] text-[var(--text-secondary)] font-mono mb-1">{formattedLabel}</p>
                             <p className="font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
                               {payload[0].value} {Number(payload[0].value) === 1 ? 'click' : 'clicks'}
@@ -278,7 +279,7 @@ export default function AnalyticsCharts({
                     }}
                   />
 
-                  {/* Straight-line Area with 1.5px teal stroke & 10% fill */}
+                  {/* Straight-line Area with 1.5px teal stroke & 14% fill */}
                   <Area
                     type="linear"
                     dataKey="clicks"
@@ -291,8 +292,8 @@ export default function AnalyticsCharts({
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] py-8">
-                <span className="text-xl opacity-60">📈</span>
+              <div className="h-full flex flex-col items-center justify-center gap-2 text-[var(--text-secondary)] py-8">
+                <span className="text-xl opacity-80">📈</span>
                 <p className="text-xs">No traffic yet — click Simulate Click above</p>
               </div>
             )}
@@ -300,11 +301,11 @@ export default function AnalyticsCharts({
         </div>
 
         {/* ── RIGHT: Breakdown Rows ── */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px' }}>
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px', alignSelf: 'start' }}>
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)] shrink-0 gap-2">
             <div>
               <p className="text-sm font-semibold text-[var(--text-primary)]">Breakdown</p>
-              <p className="text-xs text-[var(--text-muted)]">Audience distribution</p>
+              <p className="text-xs text-[var(--text-secondary)]">Audience distribution</p>
             </div>
 
             {/* Segmented category tabs */}
@@ -314,10 +315,10 @@ export default function AnalyticsCharts({
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`px-2.5 py-1 rounded-[var(--radius-control)] text-[13px] font-medium transition-colors duration-150 cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-[var(--radius-control)] text-[13px] font-semibold transition-colors duration-150 cursor-pointer ${
                     activeTab === tab
                       ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
                   {tab}
@@ -329,7 +330,7 @@ export default function AnalyticsCharts({
           <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 custom-scrollbar pt-1 flex flex-col">
             {activeList && activeList.length > 0 ? (
               <>
-                {/* Spaced bar rows with a little more gap (space-y-1.5) */}
+                {/* Spaced bar rows with gap (space-y-1.5) */}
                 <div className="space-y-1.5">
                   {activeList.slice(0, 8).map((item, idx) => {
                     const count = item.count;
@@ -342,9 +343,9 @@ export default function AnalyticsCharts({
                         key={idx}
                         className="group relative flex items-center justify-between h-10 px-2.5 rounded-[var(--radius-control)] select-none cursor-default shrink-0"
                       >
-                        {/* Background bar layer: 12% teal opacity */}
+                        {/* Background bar layer: exact rgba(15,118,110,0.12) via --accent-tint */}
                         <div
-                          className="absolute inset-y-0 left-0 rounded-[var(--radius-control)] bg-[var(--accent)] opacity-[0.12] dark:opacity-[0.12] group-hover:opacity-[0.18] dark:group-hover:opacity-[0.20] transition-opacity duration-150 ease-out pointer-events-none"
+                          className="absolute inset-y-0 left-0 rounded-[var(--radius-control)] bg-[var(--accent-tint)] group-hover:opacity-100 transition-opacity duration-150 ease-out pointer-events-none"
                           style={{ width: `${barWidth}%` }}
                         />
 
@@ -363,7 +364,7 @@ export default function AnalyticsCharts({
                           <span className="text-sm font-medium tabular-nums text-[var(--text-primary)] text-right w-12">
                             {count}
                           </span>
-                          <span className="text-[13px] font-normal tabular-nums text-[var(--text-muted)] text-right w-12 ml-2">
+                          <span className="text-[13px] font-medium tabular-nums text-[var(--text-secondary)] text-right w-12 ml-2">
                             {percentage}%
                           </span>
                         </div>
@@ -374,15 +375,15 @@ export default function AnalyticsCharts({
 
                 {activeList.length > 8 && (
                   <div className="pt-2 pb-1 text-center mt-auto shrink-0">
-                    <span className="text-xs text-[var(--text-muted)] font-normal">
-                      Showing top 8 of {activeList.length}
+                    <span className="text-xs text-[var(--text-tertiary)] font-normal">
+                      Showing 8 of {activeList.length}
                     </span>
                   </div>
                 )}
               </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center py-6">
-                <p className="text-xs text-[var(--text-muted)]">No {activeTab.toLowerCase()} recorded yet</p>
+                <p className="text-xs text-[var(--text-secondary)]">No {activeTab.toLowerCase()} recorded yet</p>
               </div>
             )}
           </div>

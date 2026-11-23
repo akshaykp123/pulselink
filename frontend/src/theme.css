@@ -1,23 +1,36 @@
 :root {
   /* ── Light Theme Tokens ── */
-  --bg: #F6F8F9;
+  --bg: #F4F7F8;
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: #E3E9EB;
   --surface: #FFFFFF;
   --surface-raised: #EEF2F4;
   --surface-subtle: #F1F4F6;
   --surface-hover: #E8ECEF;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-subtle: rgba(0, 0, 0, 0.04);
+  --border: #D9E1E4;
+  --border-subtle: #E6ECEE;
+  --border-strong: #C9D3D7;
 
-  /* Typography Colors */
-  --text-primary: #0D1519;
-  --text-secondary: #4A575E;
-  --text-muted: #78878F;
+  /* Inputs (Pure white background, defined border) */
+  --input-bg: #FFFFFF;
+  --input-border: #C9D3D7;
+  --input-placeholder: #5B6970;
 
-  /* Teal Accent (Darkened for light contrast) */
+  /* High-Contrast Text Tokens (Light: >= 5:1 to 16:1) */
+  --text-primary: #0F1A1F;
+  --text-secondary: #46535A;
+  --text-tertiary: #5B6970;
+  --text-muted: #5B6970;
+
+  /* Teal Accent */
   --accent: #0D9488;
-  --accent-hover: #0F766E;
-  --accent-subtle: rgba(13, 148, 136, 0.10);
-  --accent-border: rgba(13, 148, 136, 0.25);
+  --accent-text: #0F766E;
+  --accent-btn: #0F766E;
+  --accent-btn-text: #FFFFFF;
+  --accent-btn-hover: #115E59;
+  --accent-subtle: rgba(15, 118, 110, 0.10);
+  --accent-tint: rgba(15, 118, 110, 0.12);
+  --accent-border: #0F766E;
 
   /* Shape & Radius */
   --radius-panel: 8px;
@@ -25,32 +38,45 @@
   --radius-control: 6px;
 
   /* Shadows */
-  --shadow-soft: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
-  --shadow-dropdown: 0 8px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.04);
+  --shadow-soft: 0 1px 2px 0 rgba(15, 26, 31, 0.03);
+  --shadow-card: 0 1px 3px 0 rgba(15, 26, 31, 0.04), 0 1px 2px -1px rgba(15, 26, 31, 0.02);
+  --shadow-dropdown: 0 8px 24px -4px rgba(15, 26, 31, 0.08), 0 4px 8px -2px rgba(15, 26, 31, 0.04);
 }
 
 [data-theme='dark'],
 .dark {
-  /* ── Dark Theme Tokens (Signature PulseLink Teal Palette) ── */
+  /* ── Dark Theme Tokens ── */
   --bg: #0A0F12;
+  --sidebar-bg: #0D1317;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
   --surface: #10161A;
   --surface-raised: #151C21;
   --surface-subtle: #131A1F;
   --surface-hover: #192228;
-  --border: rgba(255, 255, 255, 0.06);
-  --border-subtle: rgba(255, 255, 255, 0.03);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.14);
 
-  /* Typography Colors */
+  /* Inputs (Dark raised) */
+  --input-bg: #151C21;
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-placeholder: #7D8B92;
+
+  /* High-Contrast Text Tokens (Dark: >= 5.5:1 to 16:1) */
   --text-primary: #E6EDF0;
-  --text-secondary: #93A1A8;
-  --text-muted: #5F6D74;
+  --text-secondary: #A3B0B6;
+  --text-tertiary: #7D8B92;
+  --text-muted: #7D8B92;
 
-  /* Distinctive Teal Accent */
+  /* Teal Accent */
   --accent: #2DD4BF;
-  --accent-hover: #14B8A6;
-  --accent-subtle: rgba(45, 212, 191, 0.10);
-  --accent-border: rgba(45, 212, 191, 0.25);
+  --accent-text: #2DD4BF;
+  --accent-btn: #2DD4BF;
+  --accent-btn-text: #04201C;
+  --accent-btn-hover: #14B8A6;
+  --accent-subtle: rgba(45, 212, 191, 0.12);
+  --accent-tint: rgba(45, 212, 191, 0.14);
+  --accent-border: #2DD4BF;
 
   /* Shadows */
   --shadow-soft: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
@@ -70,14 +96,14 @@ code, kbd, samp, pre, .font-mono {
   font-family: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace !important;
 }
 
-/* Faint Dotted-Grid Background for Main Canvas */
+/* 6-8% Opacity Dotted-Grid Background for Main Canvas */
 .dotted-grid {
   background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 :not(.dark) .dotted-grid,
 [data-theme='light'] .dotted-grid {
-  background-image: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(15, 26, 31, 0.07) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
@@ -94,7 +120,7 @@ code, kbd, samp, pre, .font-mono {
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--text-secondary);
 }
 
 /* Accessible Visible Focus Ring */

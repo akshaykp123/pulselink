@@ -261,6 +261,13 @@ export default function App() {
     ? analytics.url.shortUrl.replace(/^https?:\/\//, '')
     : `pulselink.app/${activeCode}`;
 
+  const domainPrefix = displayShortSlug.includes('/')
+    ? displayShortSlug.slice(0, displayShortSlug.lastIndexOf('/') + 1)
+    : 'pulselink.app/';
+  const slugPart = displayShortSlug.includes('/')
+    ? displayShortSlug.slice(displayShortSlug.lastIndexOf('/') + 1)
+    : activeCode;
+
   return (
     <div className="h-screen w-screen flex bg-[var(--bg)] text-[var(--text-primary)] font-sans overflow-hidden transition-colors duration-150">
       {/* ── Left Sidebar (Desktop: 280px flush to edge) ── */}
@@ -320,8 +327,9 @@ export default function App() {
 
       {/* ── Main Canvas (Right Area) ── */}
       <div className="flex-1 h-screen flex flex-col min-w-0 overflow-hidden">
-        {/* Slim 48px Top Bar */}
+        {/* 72px Top Bar with Breadcrumb and Controls */}
         <Navbar
+          activeCode={activeCode}
           autoRefresh={autoRefresh}
           setAutoRefresh={setAutoRefresh}
           onSimulateClick={handleSimulateClick}
@@ -337,18 +345,19 @@ export default function App() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border)] min-w-0">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h1 className="font-mono text-lg sm:text-xl font-semibold tracking-tight text-[var(--text-primary)] truncate">
-                      {displayShortSlug}
+                    <h1 className="font-mono text-[20px] font-semibold tracking-tight truncate">
+                      <span className="text-[var(--text-secondary)]">{domainPrefix}</span>
+                      <span className="text-[var(--text-primary)]">{slugPart}</span>
                     </h1>
                     <button
                       type="button"
                       onClick={handleCopyShortUrl}
-                      className="p-1.5 rounded-[var(--radius-control)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer focus-ring"
+                      className="p-1.5 rounded-[var(--radius-control)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer focus-ring"
                       title={copied ? "Copied to clipboard!" : "Copy link"}
                       aria-label="Copy short link"
                     >
                       {copied ? (
-                        <Check className="w-4 h-4 text-[var(--accent)]" />
+                        <Check className="w-4 h-4 text-[var(--accent-text)]" />
                       ) : (
                         <Copy className="w-4 h-4" />
                       )}
@@ -361,10 +370,10 @@ export default function App() {
                       target="_blank"
                       rel="noreferrer"
                       title={analytics.url.originalUrl}
-                      className="mt-1 inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors max-w-md sm:max-w-xl truncate min-w-0 group"
+                      className="mt-1 inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors max-w-md sm:max-w-xl truncate min-w-0 group"
                     >
                       <span className="truncate">{analytics.url.originalUrl}</span>
-                      <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />
                     </a>
                   )}
                 </div>
@@ -375,13 +384,13 @@ export default function App() {
                     type="button"
                     onClick={handleManualRefresh}
                     disabled={isLoading || isRefreshing || isDeleting}
-                    className="p-2 rounded-[var(--radius-control)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer disabled:opacity-40 focus-ring"
+                    className="p-2 rounded-[var(--radius-control)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer disabled:opacity-40 focus-ring"
                     title="Reload latest analytics"
                     aria-label="Refresh analytics"
                   >
                     <RefreshCw
                       className={`w-4 h-4 ${
-                        isRefreshing || isLoading ? 'animate-spin text-[var(--accent)]' : ''
+                        isRefreshing || isLoading ? 'animate-spin text-[var(--accent-text)]' : ''
                       }`}
                     />
                   </button>
@@ -391,7 +400,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setOverflowOpen((prev) => !prev)}
-                      className="p-2 rounded-[var(--radius-control)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer focus-ring"
+                      className="p-2 rounded-[var(--radius-control)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer focus-ring"
                       title="More actions"
                       aria-label="More actions"
                     >
@@ -471,7 +480,7 @@ export default function App() {
 
             {!analytics && !error && !isLoading && (
               <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-12 text-center shadow-xs flex flex-col items-center justify-center my-8 transition-smooth">
-                <div className="w-12 h-12 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] mb-3.5 shadow-xs">
+                <div className="w-12 h-12 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center text-[var(--accent-text)] mb-3.5 shadow-xs">
                   <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                   </svg>
@@ -479,14 +488,14 @@ export default function App() {
                 <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">
                   Select a link from the sidebar
                 </h3>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)] max-w-sm leading-relaxed">
+                <p className="text-xs sm:text-sm text-[var(--text-secondary)] max-w-sm leading-relaxed">
                   Choose a short link on the left to inspect real-time click telemetry, or shorten a new URL above.
                 </p>
               </div>
             )}
 
             {/* Footer */}
-            <footer className="mt-auto pt-6 pb-2 text-center text-[11px] text-[var(--text-muted)]">
+            <footer className="mt-auto pt-6 pb-2 text-center text-[11px] text-[var(--text-secondary)]">
               PulseLink Telemetry • Node.js • PostgreSQL • Redis • BullMQ • React 19
             </footer>
           </div>
