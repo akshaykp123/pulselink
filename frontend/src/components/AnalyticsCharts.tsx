@@ -141,7 +141,6 @@ export default function AnalyticsCharts({
           grid-template-columns: 1fr 1fr;
           gap: 16px;
           width: 100%;
-          align-items: start;
         }
         @media (max-width: 860px) {
           .charts-responsive-grid {
@@ -300,7 +299,7 @@ export default function AnalyticsCharts({
         </div>
 
         {/* ── RIGHT: Breakdown Rows ── */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth min-h-[180px]">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px' }}>
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)] shrink-0 gap-2">
             <div>
               <p className="text-sm font-semibold text-[var(--text-primary)]">Breakdown</p>
@@ -326,7 +325,7 @@ export default function AnalyticsCharts({
             </div>
           </div>
 
-          <div className="pt-1">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 custom-scrollbar pt-1 flex flex-col">
             {activeList && activeList.length > 0 ? (
               <>
                 <div className="space-y-1">
@@ -339,7 +338,7 @@ export default function AnalyticsCharts({
                     return (
                       <div
                         key={idx}
-                        className="group relative flex items-center justify-between h-10 px-2 rounded-[6px] select-none cursor-default"
+                        className="group relative flex items-center justify-between h-10 px-2 rounded-[6px] select-none cursor-default shrink-0"
                       >
                         {/* Background bar layer */}
                         <div
@@ -372,7 +371,7 @@ export default function AnalyticsCharts({
                 </div>
 
                 {activeList.length > 8 && (
-                  <div className="pt-2 text-center">
+                  <div className="pt-2 pb-1 text-center mt-auto shrink-0">
                     <span className="text-xs text-[var(--text-muted)] font-normal">
                       Showing top 8 of {activeList.length}
                     </span>
@@ -380,7 +379,7 @@ export default function AnalyticsCharts({
                 )}
               </>
             ) : (
-              <div className="py-6 flex flex-col items-center justify-center text-center">
+              <div className="h-full flex flex-col items-center justify-center text-center py-6">
                 <p className="text-xs text-[var(--text-muted)]">No {activeTab.toLowerCase()} recorded yet</p>
               </div>
             )}
