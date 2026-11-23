@@ -3,7 +3,7 @@ import Navbar from './components/Navbar';
 import UrlShortener from './components/UrlShortener';
 import AnalyticsSummary from './components/AnalyticsSummary';
 import AnalyticsCharts from './components/AnalyticsCharts';
-import { ExternalLink, RefreshCw, Link as LinkIcon, Trash2, Copy, Check, MoreHorizontal } from 'lucide-react';
+import { ExternalLink, RefreshCw, Trash2, Copy, Check, MoreHorizontal } from 'lucide-react';
 import type { AnalyticsResponse } from './types/analytics';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
@@ -30,6 +30,7 @@ export default function App() {
   const [overflowOpen, setOverflowOpen] = useState<boolean>(false);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h');
   const [linkClicksMap, setLinkClicksMap] = useState<Record<string, number>>({});
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState<boolean>(false);
   const overflowRef = useRef<HTMLDivElement>(null);
 
   const [recentCodes, setRecentCodes] = useState<string[]>(() => {
@@ -59,7 +60,7 @@ export default function App() {
     };
   }, [overflowOpen]);
 
-  // Fetch all recent shortened links from backend to populate dropdown and click counts
+  // Fetch all recent shortened links from backend
   const fetchRecentUrls = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/urls`);
@@ -183,7 +184,6 @@ export default function App() {
   const handleSimulateClick = async () => {
     setIsSimulating(true);
     try {
-      // Maintain persistent visitor identity across simulated clicks
       let vid = localStorage.getItem('pulselink_vid');
       if (!vid) {
         vid = 'sim_' + Math.random().toString(36).substring(2, 15);
@@ -200,7 +200,6 @@ export default function App() {
     } catch {
       // Ignore opaque redirect response
     } finally {
-      // Brief delay to allow background queue worker to write to Postgres
       setTimeout(() => {
         fetchAnalytics(activeCode, true, timeRange);
         fetchRecentUrls();
@@ -263,15 +262,9 @@ export default function App() {
     : `pulselink.app/${activeCode}`;
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex flex-col text-[var(--text-primary)] font-sans overflow-x-hidden transition-colors duration-150">
-      <Navbar
-        autoRefresh={autoRefresh}
-        setAutoRefresh={setAutoRefresh}
-        onSimulateClick={handleSimulateClick}
-        isSimulating={isSimulating}
-      />
-
-      <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 flex flex-col gap-6">
+    <div className="h-screen w-screen flex bg-[var(--bg)] text-[var(--text-primary)] font-sans overflow-hidden transition-colors duration-150">
+      {/* ── Left Sidebar (Desktop: 280px flush to edge) ── */}
+      <div className="hidden md:block h-full shrink-0">
         <UrlShortener
           activeCode={activeCode}
           recentCodes={recentCodes}
@@ -289,164 +282,216 @@ export default function App() {
           }}
           apiBase={API_BASE}
         />
+      </div>
 
-        {/* Analytics Header */}
-        {analytics && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 pb-2 border-b border-[var(--border)] min-w-0">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="font-mono text-lg sm:text-xl font-semibold tracking-tight text-[var(--text-primary)] truncate">
-                  {displayShortSlug}
-                </h1>
-                <button
-                  type="button"
-                  onClick={handleCopyShortUrl}
-                  className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-subtle)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                  title={copied ? "Copied to clipboard!" : "Copy link"}
-                  aria-label="Copy short link"
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 text-[var(--accent)]" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
+      {/* ── Left Sidebar (Mobile Drawer < 900px) ── */}
+      {mobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in duration-150">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            onClick={() => setMobileDrawerOpen(false)}
+          />
+          <div className="relative z-10 h-full">
+            <UrlShortener
+              activeCode={activeCode}
+              recentCodes={recentCodes}
+              linkClicksMap={linkClicksMap}
+              onSelectCode={(code: string) => {
+                fetchAnalytics(code, false, timeRange);
+                setMobileDrawerOpen(false);
+              }}
+              onUrlCreated={(code: string) => {
+                localStorage.setItem('pulselink_last_created_code', code);
+                setRecentCodes((prev) => {
+                  const updated = [code, ...prev.filter((c) => c !== code)];
+                  localStorage.setItem('pulselink_recent_codes', JSON.stringify(updated));
+                  return updated;
+                });
+                fetchAnalytics(code, false, timeRange);
+                fetchRecentUrls();
+                setMobileDrawerOpen(false);
+              }}
+              apiBase={API_BASE}
+              onCloseMobileDrawer={() => setMobileDrawerOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
-              {analytics?.url?.originalUrl && (
-                <a
-                  href={analytics.url.originalUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  title={analytics.url.originalUrl}
-                  className="mt-1 inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors max-w-md sm:max-w-xl truncate min-w-0 group"
-                >
-                  <span className="truncate">{analytics.url.originalUrl}</span>
-                  <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
-                </a>
-              )}
-            </div>
+      {/* ── Main Canvas (Right Area) ── */}
+      <div className="flex-1 h-screen flex flex-col min-w-0 overflow-hidden">
+        {/* Slim 48px Top Bar */}
+        <Navbar
+          autoRefresh={autoRefresh}
+          setAutoRefresh={setAutoRefresh}
+          onSimulateClick={handleSimulateClick}
+          isSimulating={isSimulating}
+          onToggleSidebar={() => setMobileDrawerOpen((prev) => !prev)}
+        />
 
-            <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
-              {/* Ghost icon refresh button */}
-              <button
-                type="button"
-                onClick={handleManualRefresh}
-                disabled={isLoading || isRefreshing || isDeleting}
-                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-subtle)] transition-colors cursor-pointer disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                title="Reload latest analytics"
-                aria-label="Refresh analytics"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${
-                    isRefreshing || isLoading ? 'animate-spin text-[var(--accent)]' : ''
-                  }`}
-                />
-              </button>
-
-              {/* Overflow "⋯" Menu */}
-              <div className="relative" ref={overflowRef}>
-                <button
-                  type="button"
-                  onClick={() => setOverflowOpen((prev) => !prev)}
-                  className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-subtle)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                  title="More actions"
-                  aria-label="More actions"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-
-                {overflowOpen && (
-                  <div className="absolute right-0 mt-1 w-44 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg z-30 py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+        {/* Scrollable Main Area with Faint Dotted Grid */}
+        <main className="flex-1 overflow-y-auto dotted-grid p-5 sm:p-8 flex flex-col custom-scrollbar">
+          <div className="max-w-[1200px] w-full mx-auto flex flex-col gap-6">
+            {/* Analytics Header */}
+            {analytics && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border)] min-w-0">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h1 className="font-mono text-lg sm:text-xl font-semibold tracking-tight text-[var(--text-primary)] truncate">
+                      {displayShortSlug}
+                    </h1>
                     <button
                       type="button"
-                      onClick={() => {
-                        setOverflowOpen(false);
-                        handleDeleteUrl(activeCode);
-                      }}
-                      disabled={isDeleting}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[var(--text-secondary)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer disabled:opacity-50"
+                      onClick={handleCopyShortUrl}
+                      className="p-1.5 rounded-[var(--radius-control)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer focus-ring"
+                      title={copied ? "Copied to clipboard!" : "Copy link"}
+                      aria-label="Copy short link"
                     >
-                      <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                      <span>{isDeleting ? 'Deleting link…' : 'Delete short link'}</span>
+                      {copied ? (
+                        <Check className="w-4 h-4 text-[var(--accent)]" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {error && (
-          <p className="text-xs text-red-600 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 rounded-lg px-3.5 py-2.5">
-            {error}
-          </p>
-        )}
-
-        {/* Skeleton placeholder while initial loading */}
-        {isLoading && !analytics && (
-          <div className="flex flex-col gap-6 animate-pulse" aria-hidden="true">
-            {/* KPI Skeleton Card */}
-            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 h-24 flex divide-x divide-[var(--border)]">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex-1 px-4 first:pl-0 flex flex-col justify-between">
-                  <div className="h-3 w-16 bg-[var(--surface-subtle)] rounded"></div>
-                  <div className="h-7 w-24 bg-[var(--surface-subtle)] rounded"></div>
+                  {analytics?.url?.originalUrl && (
+                    <a
+                      href={analytics.url.originalUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={analytics.url.originalUrl}
+                      className="mt-1 inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors max-w-md sm:max-w-xl truncate min-w-0 group"
+                    >
+                      <span className="truncate">{analytics.url.originalUrl}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
+                    </a>
+                  )}
                 </div>
-              ))}
-            </div>
-            {/* Charts Skeleton Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 h-80 flex flex-col justify-between">
-                <div className="h-4 w-32 bg-[var(--surface-subtle)] rounded"></div>
-                <div className="h-56 bg-[var(--surface-subtle)] rounded"></div>
+
+                <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+                  {/* Ghost icon refresh button */}
+                  <button
+                    type="button"
+                    onClick={handleManualRefresh}
+                    disabled={isLoading || isRefreshing || isDeleting}
+                    className="p-2 rounded-[var(--radius-control)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer disabled:opacity-40 focus-ring"
+                    title="Reload latest analytics"
+                    aria-label="Refresh analytics"
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 ${
+                        isRefreshing || isLoading ? 'animate-spin text-[var(--accent)]' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {/* Overflow "⋯" Menu */}
+                  <div className="relative" ref={overflowRef}>
+                    <button
+                      type="button"
+                      onClick={() => setOverflowOpen((prev) => !prev)}
+                      className="p-2 rounded-[var(--radius-control)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer focus-ring"
+                      title="More actions"
+                      aria-label="More actions"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+
+                    {overflowOpen && (
+                      <div className="absolute right-0 mt-1 w-44 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] shadow-xl z-30 py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOverflowOpen(false);
+                            handleDeleteUrl(activeCode);
+                          }}
+                          disabled={isDeleting}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-left text-[var(--text-secondary)] hover:text-rose-500 hover:bg-rose-500/10 transition-smooth cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>{isDeleting ? 'Deleting link…' : 'Delete short link'}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 h-80 flex flex-col justify-between">
-                <div className="h-4 w-32 bg-[var(--surface-subtle)] rounded"></div>
-                <div className="h-56 bg-[var(--surface-subtle)] rounded"></div>
+            )}
+
+            {error && (
+              <p className="text-xs text-rose-500 bg-rose-500/10 border border-rose-500/20 rounded-[var(--radius-control)] px-3.5 py-2.5">
+                {error}
+              </p>
+            )}
+
+            {/* Skeleton placeholder while initial loading */}
+            {isLoading && !analytics && (
+              <div className="flex flex-col gap-6 animate-pulse" aria-hidden="true">
+                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-5 h-24 flex divide-x divide-[var(--border)]">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex-1 px-4 first:pl-0 flex flex-col justify-between">
+                      <div className="h-3 w-16 bg-[var(--surface-raised)] rounded-[var(--radius-control)]"></div>
+                      <div className="h-7 w-24 bg-[var(--surface-raised)] rounded-[var(--radius-control)]"></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-6 h-80 flex flex-col justify-between">
+                    <div className="h-4 w-32 bg-[var(--surface-raised)] rounded-[var(--radius-control)]"></div>
+                    <div className="h-56 bg-[var(--surface-raised)] rounded-[var(--radius-control)]"></div>
+                  </div>
+                  <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-6 h-80 flex flex-col justify-between">
+                    <div className="h-4 w-32 bg-[var(--surface-raised)] rounded-[var(--radius-control)]"></div>
+                    <div className="h-56 bg-[var(--surface-raised)] rounded-[var(--radius-control)]"></div>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {analytics && (
+              <>
+                <AnalyticsSummary
+                  summary={analytics.summary}
+                  countries={analytics.countries}
+                  devices={analytics.devices}
+                />
+
+                <AnalyticsCharts
+                  timeline={analytics.timeline}
+                  countries={analytics.countries}
+                  devices={analytics.devices}
+                  browsers={analytics.browsers}
+                  referrers={analytics.referrers}
+                  timeRange={timeRange}
+                  onRangeChange={handleRangeChange}
+                />
+              </>
+            )}
+
+            {!analytics && !error && !isLoading && (
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-12 text-center shadow-xs flex flex-col items-center justify-center my-8 transition-smooth">
+                <div className="w-12 h-12 rounded-full bg-[var(--surface-raised)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] mb-3.5 shadow-xs">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">
+                  Select a link from the sidebar
+                </h3>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] max-w-sm leading-relaxed">
+                  Choose a short link on the left to inspect real-time click telemetry, or shorten a new URL above.
+                </p>
+              </div>
+            )}
+
+            {/* Footer */}
+            <footer className="mt-auto pt-6 pb-2 text-center text-[11px] text-[var(--text-muted)]">
+              PulseLink Telemetry • Node.js • PostgreSQL • Redis • BullMQ • React 19
+            </footer>
           </div>
-        )}
-
-        {analytics && (
-          <>
-            <AnalyticsSummary
-              summary={analytics.summary}
-              countries={analytics.countries}
-              devices={analytics.devices}
-            />
-
-            <AnalyticsCharts
-              timeline={analytics.timeline}
-              countries={analytics.countries}
-              devices={analytics.devices}
-              browsers={analytics.browsers}
-              referrers={analytics.referrers}
-              timeRange={timeRange}
-              onRangeChange={handleRangeChange}
-            />
-          </>
-        )}
-
-        {!analytics && !error && !isLoading && (
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 sm:p-16 text-center shadow-xs flex flex-col items-center justify-center my-4 transition-colors">
-            <div className="w-12 h-12 rounded-full bg-[var(--surface-subtle)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)] mb-3.5 shadow-xs">
-              <LinkIcon className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">
-              No link selected
-            </h3>
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] max-w-sm leading-relaxed">
-              Paste a URL above to shorten it, or select an existing link from your chips to inspect real-time click telemetry.
-            </p>
-          </div>
-        )}
-      </main>
-
-      <footer className="border-t border-[var(--border)] py-4 text-center text-xs text-[var(--text-muted)] bg-[var(--surface)] transition-colors">
-        PulseLink Enterprise Telemetry • Node.js • PostgreSQL • Redis • BullMQ • React
-      </footer>
+        </main>
+      </div>
     </div>
   );
 }

@@ -139,7 +139,7 @@ export default function AnalyticsCharts({
         .charts-responsive-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 22px;
           width: 100%;
         }
         @media (max-width: 860px) {
@@ -150,7 +150,7 @@ export default function AnalyticsCharts({
       `}</style>
       <div className="charts-responsive-grid">
         {/* ── LEFT: Click Traffic Area Chart ── */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px' }}>
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px' }}>
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)] shrink-0">
             <div>
               <p className="text-xs font-semibold text-[var(--text-primary)]">Click Traffic</p>
@@ -164,13 +164,13 @@ export default function AnalyticsCharts({
             </div>
 
             {/* Segmented range control (24h / 7d / 30d) */}
-            <div className="flex items-center p-0.5 rounded-[var(--radius-control)] bg-[var(--surface-subtle)] border border-[var(--border)] shrink-0">
+            <div className="flex items-center p-0.5 rounded-[var(--radius-control)] bg-[var(--surface-raised)] border border-[var(--border)] shrink-0">
               {(['24h', '7d', '30d'] as const).map((r) => (
                 <button
                   key={r}
                   type="button"
                   onClick={() => handleRangeSelect(r)}
-                  className={`px-2 py-0.5 rounded-[5px] text-[11px] font-medium transition-smooth cursor-pointer ${
+                  className={`px-2 py-0.5 rounded-[var(--radius-control)] text-[11px] font-medium transition-smooth cursor-pointer ${
                     activeRange === r
                       ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
@@ -191,7 +191,7 @@ export default function AnalyticsCharts({
                 >
                   <defs>
                     <linearGradient id="trafficGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.18} />
+                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.10} />
                       <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
@@ -278,14 +278,15 @@ export default function AnalyticsCharts({
                     }}
                   />
 
+                  {/* Straight-line Area with 1.5px teal stroke & 10% fill */}
                   <Area
-                    type="monotone"
+                    type="linear"
                     dataKey="clicks"
                     stroke="var(--accent)"
-                    strokeWidth={2}
+                    strokeWidth={1.5}
                     fill="url(#trafficGradient)"
                     dot={false}
-                    activeDot={{ r: 4, fill: 'var(--accent)', stroke: 'var(--surface)', strokeWidth: 2 }}
+                    activeDot={{ r: 4, fill: 'var(--accent)', stroke: 'var(--surface)', strokeWidth: 1.5 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -299,7 +300,7 @@ export default function AnalyticsCharts({
         </div>
 
         {/* ── RIGHT: Breakdown Rows ── */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px' }}>
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-panel)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px' }}>
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)] shrink-0 gap-2">
             <div>
               <p className="text-sm font-semibold text-[var(--text-primary)]">Breakdown</p>
@@ -307,13 +308,13 @@ export default function AnalyticsCharts({
             </div>
 
             {/* Segmented category tabs */}
-            <div className="flex items-center p-0.5 rounded-[var(--radius-control)] bg-[var(--surface-subtle)] border border-[var(--border)] shrink-0">
+            <div className="flex items-center p-0.5 rounded-[var(--radius-control)] bg-[var(--surface-raised)] border border-[var(--border)] shrink-0">
               {TABS.map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`px-2.5 py-1 rounded-[6px] text-[13px] font-medium transition-colors duration-150 cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-[var(--radius-control)] text-[13px] font-medium transition-colors duration-150 cursor-pointer ${
                     activeTab === tab
                       ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
@@ -328,7 +329,8 @@ export default function AnalyticsCharts({
           <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 custom-scrollbar pt-1 flex flex-col">
             {activeList && activeList.length > 0 ? (
               <>
-                <div className="space-y-1">
+                {/* Spaced bar rows with a little more gap (space-y-1.5) */}
+                <div className="space-y-1.5">
                   {activeList.slice(0, 8).map((item, idx) => {
                     const count = item.count;
                     const percentage = totalListClicks > 0 ? Math.round((count / totalListClicks) * 100) : 0;
@@ -338,11 +340,11 @@ export default function AnalyticsCharts({
                     return (
                       <div
                         key={idx}
-                        className="group relative flex items-center justify-between h-10 px-2 rounded-[6px] select-none cursor-default shrink-0"
+                        className="group relative flex items-center justify-between h-10 px-2.5 rounded-[var(--radius-control)] select-none cursor-default shrink-0"
                       >
-                        {/* Background bar layer */}
+                        {/* Background bar layer: 12% teal opacity */}
                         <div
-                          className="absolute inset-y-0 left-0 rounded-[6px] bg-[var(--accent)] opacity-[0.09] dark:opacity-[0.13] group-hover:opacity-[0.16] dark:group-hover:opacity-[0.22] transition-opacity duration-150 ease-out pointer-events-none"
+                          className="absolute inset-y-0 left-0 rounded-[var(--radius-control)] bg-[var(--accent)] opacity-[0.12] dark:opacity-[0.12] group-hover:opacity-[0.18] dark:group-hover:opacity-[0.20] transition-opacity duration-150 ease-out pointer-events-none"
                           style={{ width: `${barWidth}%` }}
                         />
 
