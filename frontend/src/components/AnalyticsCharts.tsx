@@ -141,6 +141,7 @@ export default function AnalyticsCharts({
           grid-template-columns: 1fr 1fr;
           gap: 16px;
           width: 100%;
+          align-items: start;
         }
         @media (max-width: 860px) {
           .charts-responsive-grid {
@@ -298,12 +299,12 @@ export default function AnalyticsCharts({
           </div>
         </div>
 
-        {/* ── RIGHT: Breakdown Ranked Rows (Vercel/Linear Style) ── */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px' }}>
+        {/* ── RIGHT: Breakdown Rows ── */}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth min-h-[180px]">
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)] shrink-0 gap-2">
             <div>
-              <p className="text-xs font-semibold text-[var(--text-primary)]">Breakdown</p>
-              <p className="text-[11px] text-[var(--text-muted)]">Audience distribution</p>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">Breakdown</p>
+              <p className="text-xs text-[var(--text-muted)]">Audience distribution</p>
             </div>
 
             {/* Segmented category tabs */}
@@ -313,7 +314,7 @@ export default function AnalyticsCharts({
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`px-2 py-0.5 rounded-[5px] text-[11px] font-medium transition-smooth cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-[6px] text-[13px] font-medium transition-colors duration-150 cursor-pointer ${
                     activeTab === tab
                       ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
@@ -325,49 +326,62 @@ export default function AnalyticsCharts({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-2.5 pr-0.5 custom-scrollbar pt-1">
+          <div className="pt-1">
             {activeList && activeList.length > 0 ? (
-              activeList.map((item, idx) => {
-                const count = item.count;
-                const percentage = totalListClicks > 0 ? Math.round((count / totalListClicks) * 100) : 0;
-                const barWidth = Math.max(Math.round((count / maxClicks) * 100), 2);
-                const displayLabel = activeTab === 'Countries' ? formatCountryName(item.label) : item.label;
+              <>
+                <div className="space-y-1">
+                  {activeList.slice(0, 8).map((item, idx) => {
+                    const count = item.count;
+                    const percentage = totalListClicks > 0 ? Math.round((count / totalListClicks) * 100) : 0;
+                    const barWidth = maxClicks > 0 ? Math.min((count / maxClicks) * 100, 100) : 0;
+                    const displayLabel = activeTab === 'Countries' ? formatCountryName(item.label) : item.label;
 
-                return (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-2">
-                        <span className="text-[11px] text-[var(--text-muted)] font-mono w-4 shrink-0">
-                          {idx + 1}
-                        </span>
-                        <span className="font-medium text-[var(--text-primary)] truncate">
-                          {displayLabel}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[var(--text-primary)] font-semibold tabular-nums">
-                          {count}
-                        </span>
-                        <span className="text-[11px] text-[var(--text-muted)] tabular-nums w-8 text-right">
-                          {percentage}%
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Horizontal 6px progress track bar */}
-                    <div className="h-1.5 w-full rounded-full bg-[var(--surface-subtle)] overflow-hidden">
+                    return (
                       <div
-                        className="h-full rounded-full bg-[var(--accent)] transition-all duration-300"
-                        style={{ width: `${barWidth}%` }}
-                      />
-                    </div>
+                        key={idx}
+                        className="group relative flex items-center justify-between h-10 px-2 rounded-[6px] select-none cursor-default"
+                      >
+                        {/* Background bar layer */}
+                        <div
+                          className="absolute inset-y-0 left-0 rounded-[6px] bg-[var(--accent)] opacity-[0.09] dark:opacity-[0.13] group-hover:opacity-[0.16] dark:group-hover:opacity-[0.22] transition-opacity duration-150 ease-out pointer-events-none"
+                          style={{ width: `${barWidth}%` }}
+                        />
+
+                        {/* Left: label */}
+                        <div className="relative z-10 min-w-0 flex-1 pr-3">
+                          <span
+                            className="text-sm font-medium text-[var(--text-primary)] truncate block"
+                            title={displayLabel}
+                          >
+                            {displayLabel}
+                          </span>
+                        </div>
+
+                        {/* Right: count and percentage with fixed-width columns */}
+                        <div className="relative z-10 flex items-center shrink-0">
+                          <span className="text-sm font-medium tabular-nums text-[var(--text-primary)] text-right w-12">
+                            {count}
+                          </span>
+                          <span className="text-[13px] font-normal tabular-nums text-[var(--text-muted)] text-right w-12 ml-2">
+                            {percentage}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {activeList.length > 8 && (
+                  <div className="pt-2 text-center">
+                    <span className="text-xs text-[var(--text-muted)] font-normal">
+                      Showing top 8 of {activeList.length}
+                    </span>
                   </div>
-                );
-              })
+                )}
+              </>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] py-8">
-                <span className="text-xl opacity-60">📊</span>
-                <p className="text-xs">No {activeTab.toLowerCase()} data recorded yet</p>
+              <div className="py-6 flex flex-col items-center justify-center text-center">
+                <p className="text-xs text-[var(--text-muted)]">No {activeTab.toLowerCase()} recorded yet</p>
               </div>
             )}
           </div>
