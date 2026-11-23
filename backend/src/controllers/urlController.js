@@ -100,6 +100,7 @@ export async function getRecentUrls(req, res) {
 export async function getUrlAnalytics(req, res) {
   try {
     const { code } = req.params;
+    const range = (req.query.range || '24h').toLowerCase();
 
     const urlResult = await pool.query(
       'SELECT id, short_code, original_url, clicks_count, created_at FROM urls WHERE short_code = $1 OR custom_alias = $1',
@@ -112,13 +113,75 @@ export async function getUrlAnalytics(req, res) {
     const urlRecord = urlResult.rows[0];
     const urlId = urlRecord.id;
 
+    // Build timeline query with continuous zero-filled baseline across the requested range
+    let timelineQuery;
+    if (range === '7d') {
+      timelineQuery = `
+        WITH time_slots AS (
+          SELECT generate_series(
+            date_trunc('day', NOW() - INTERVAL '6 days'),
+            date_trunc('day', NOW()),
+            INTERVAL '1 day'
+          ) AS slot
+        )
+        SELECT
+          to_char(ts.slot, 'YYYY-MM-DD') AS time_bucket,
+          COALESCE(COUNT(c.id), 0)::int AS clicks
+        FROM time_slots ts
+        LEFT JOIN clicks c
+          ON c.url_id = $1
+          AND date_trunc('day', c.clicked_at) = ts.slot
+        GROUP BY ts.slot
+        ORDER BY ts.slot ASC
+      `;
+    } else if (range === '30d') {
+      timelineQuery = `
+        WITH time_slots AS (
+          SELECT generate_series(
+            date_trunc('day', NOW() - INTERVAL '29 days'),
+            date_trunc('day', NOW()),
+            INTERVAL '1 day'
+          ) AS slot
+        )
+        SELECT
+          to_char(ts.slot, 'YYYY-MM-DD') AS time_bucket,
+          COALESCE(COUNT(c.id), 0)::int AS clicks
+        FROM time_slots ts
+        LEFT JOIN clicks c
+          ON c.url_id = $1
+          AND date_trunc('day', c.clicked_at) = ts.slot
+        GROUP BY ts.slot
+        ORDER BY ts.slot ASC
+      `;
+    } else {
+      // Default: 24 hours
+      timelineQuery = `
+        WITH time_slots AS (
+          SELECT generate_series(
+            date_trunc('hour', NOW() - INTERVAL '23 hours'),
+            date_trunc('hour', NOW()),
+            INTERVAL '1 hour'
+          ) AS slot
+        )
+        SELECT
+          to_char(ts.slot, 'YYYY-MM-DD HH24:00') AS time_bucket,
+          COALESCE(COUNT(c.id), 0)::int AS clicks
+        FROM time_slots ts
+        LEFT JOIN clicks c
+          ON c.url_id = $1
+          AND date_trunc('hour', c.clicked_at) = ts.slot
+        GROUP BY ts.slot
+        ORDER BY ts.slot ASC
+      `;
+    }
+
     // Run aggregations in parallel for low latency
     const [summaryStats, countryStats, deviceStats, browserStats, timeSeriesStats, referrerStats] = await Promise.all([
       pool.query(`SELECT COUNT(*)::int AS total_clicks, COUNT(DISTINCT ip_hash)::int AS unique_visitors FROM clicks WHERE url_id = $1`, [urlId]),
       pool.query(`SELECT country, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY country ORDER BY clicks DESC LIMIT 6`, [urlId]),
       pool.query(`SELECT device_type, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY device_type ORDER BY clicks DESC`, [urlId]),
       pool.query(`SELECT browser, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY browser ORDER BY clicks DESC LIMIT 5`, [urlId]),
-      pool.query(`SELECT to_char(date_trunc('hour', clicked_at), 'YYYY-MM-DD HH24:00') AS time_bucket, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY time_bucket ORDER BY time_bucket ASC LIMIT 24`, [urlId]),
+      pool.query(timelineQuery, [urlId]),
       pool.query(`SELECT referrer, COUNT(*)::int AS clicks FROM clicks WHERE url_id = $1 GROUP BY referrer ORDER BY clicks DESC LIMIT 6`, [urlId]),
     ]);
 

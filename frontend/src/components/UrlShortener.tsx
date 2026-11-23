@@ -11,6 +11,7 @@ export interface UrlShortenerProps {
   activeCode?: string;
   onSelectCode?: (code: string) => void;
   recentCodes?: string[];
+  linkClicksMap?: Record<string, number>;
   apiBase?: string;
 }
 
@@ -19,6 +20,7 @@ export default function UrlShortener({
   activeCode = '',
   onSelectCode,
   recentCodes = [],
+  linkClicksMap = {},
   apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5000',
 }: UrlShortenerProps) {
   const [originalUrl, setOriginalUrl] = useState<string>('');
@@ -98,7 +100,7 @@ export default function UrlShortener({
   );
 
   return (
-    <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] overflow-hidden transition-smooth">
+    <div className="relative z-20 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] transition-smooth">
       {/* ── CREATE BAR: single row with thin dividers and filled primary 40px button ── */}
       <form onSubmit={handleShorten} className="flex items-center p-1.5 gap-1.5 flex-wrap sm:flex-nowrap">
         {/* Long URL Input */}
@@ -149,7 +151,7 @@ export default function UrlShortener({
       <div className="h-[1px] w-full bg-[var(--border)]" />
 
       {/* ── YOUR LINKS ROW: latest 5 chips + dropdown popover ── */}
-      <div className="flex items-center justify-between gap-3 px-3.5 py-2 min-h-[38px] bg-[var(--surface)] text-xs flex-wrap">
+      <div className="flex items-center justify-between gap-3 px-3.5 py-2 min-h-[38px] bg-[var(--surface)] text-xs flex-wrap rounded-b-[var(--radius-card)]">
         <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
           <span className="text-xs font-medium text-[var(--text-muted)] shrink-0 mr-1 select-none">
             Your links
@@ -179,29 +181,35 @@ export default function UrlShortener({
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
-                onClick={() => setShowOverflow(!showOverflow)}
-                className="h-6 px-2.5 rounded-full text-xs font-medium text-[var(--text-secondary)] bg-[var(--surface-subtle)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] border border-[var(--border-subtle)] flex items-center gap-1 transition-smooth cursor-pointer focus-ring"
+                onClick={() => setShowOverflow((prev) => !prev)}
+                className={`h-6 px-2.5 rounded-full text-xs font-medium border flex items-center gap-1 transition-smooth cursor-pointer focus-ring ${
+                  showOverflow
+                    ? 'bg-[var(--accent-subtle)] text-[var(--accent)] border-[var(--accent-border)]'
+                    : 'bg-[var(--surface-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] border-[var(--border-subtle)]'
+                }`}
               >
                 <span>+{overflowCodes.length} more</span>
-                <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" />
+                <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${showOverflow ? 'rotate-180' : ''}`} />
               </button>
 
               {showOverflow && (
-                <div className="absolute left-0 top-8 z-50 w-56 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-dropdown)] p-1.5 transition-smooth">
-                  <div className="flex items-center gap-1.5 px-2 py-1 border-b border-[var(--border)] mb-1">
-                    <Search className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
+                <div className="absolute left-0 top-full mt-1.5 z-50 w-64 rounded-[var(--radius-control)] bg-[var(--surface)] border border-[var(--border)] shadow-xl p-2 transition-smooth">
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-[var(--border)] mb-1.5">
+                    <Search className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
                     <input
                       type="text"
-                      placeholder="Filter links…"
+                      placeholder="Search links…"
                       value={dropdownSearch}
                       onChange={(e) => setDropdownSearch(e.target.value)}
                       className="w-full bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+                      autoFocus
                     />
                   </div>
-                  <div className="max-h-48 overflow-y-auto space-y-0.5">
+                  <div className="max-h-52 overflow-y-auto space-y-0.5 custom-scrollbar">
                     {filteredOverflow.length > 0 ? (
                       filteredOverflow.map((code) => {
                         const isSelected = activeCode === code;
+                        const clicks = linkClicksMap ? linkClicksMap[code] : undefined;
                         return (
                           <button
                             key={code}
@@ -210,20 +218,27 @@ export default function UrlShortener({
                               if (onSelectCode) onSelectCode(code);
                               setShowOverflow(false);
                             }}
-                            className={`w-full text-left px-2 py-1.5 rounded-[6px] text-xs font-mono transition-smooth flex items-center justify-between ${
+                            className={`w-full text-left px-2.5 py-1.5 rounded-[6px] text-xs font-mono transition-smooth flex items-center justify-between cursor-pointer ${
                               isSelected
                                 ? 'bg-[var(--accent-subtle)] text-[var(--accent)] font-medium'
                                 : 'text-[var(--text-secondary)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text-primary)]'
                             }`}
                           >
-                            <span>/{code}</span>
-                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />}
+                            <span className="truncate">/{code}</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {clicks !== undefined && (
+                                <span className="text-[11px] text-[var(--text-muted)] font-sans">
+                                  {clicks} {clicks === 1 ? 'click' : 'clicks'}
+                                </span>
+                              )}
+                              {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />}
+                            </div>
                           </button>
                         );
                       })
                     ) : (
-                      <p className="px-2 py-2 text-[11px] text-[var(--text-muted)] text-center">
-                        No links found
+                      <p className="px-2 py-3 text-[11px] text-[var(--text-muted)] text-center">
+                        No matching links
                       </p>
                     )}
                   </div>
@@ -292,7 +307,7 @@ export default function UrlShortener({
       {/* QR Code Modal Dialog */}
       {showQR && createdUrl && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-6 shadow-[var(--shadow-dropdown)] text-center space-y-4 max-w-xs w-full transition-smooth">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-6 shadow-xl text-center space-y-4 max-w-xs w-full transition-smooth">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">QR Code</span>
               <button

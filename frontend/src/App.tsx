@@ -28,6 +28,8 @@ export default function App() {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [overflowOpen, setOverflowOpen] = useState<boolean>(false);
+  const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h');
+  const [linkClicksMap, setLinkClicksMap] = useState<Record<string, number>>({});
   const overflowRef = useRef<HTMLDivElement>(null);
 
   const [recentCodes, setRecentCodes] = useState<string[]>(() => {
@@ -57,11 +59,39 @@ export default function App() {
     };
   }, [overflowOpen]);
 
+  // Fetch all recent shortened links from backend to populate dropdown and click counts
+  const fetchRecentUrls = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/urls`);
+      if (!res.ok) return;
+      const data: Array<{ short_code: string; clicks_count?: number | string }> = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const clicksMap: Record<string, number> = {};
+        const serverCodes = data.map((item) => {
+          clicksMap[item.short_code] = Number(item.clicks_count) || 0;
+          return item.short_code;
+        });
+
+        setRecentCodes((prev) => {
+          const merged = Array.from(new Set([...prev, ...serverCodes]));
+          localStorage.setItem('pulselink_recent_codes', JSON.stringify(merged));
+          return merged;
+        });
+        setLinkClicksMap((prev) => ({ ...prev, ...clicksMap }));
+      }
+    } catch {
+      // Ignore background fetch error
+    }
+  };
+
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
       if (activeCode) {
-        await fetchAnalytics(activeCode, true);
+        await Promise.all([
+          fetchAnalytics(activeCode, true, timeRange),
+          fetchRecentUrls(),
+        ]);
       }
     } finally {
       setTimeout(() => setIsRefreshing(false), 450);
@@ -76,7 +106,11 @@ export default function App() {
     setTimeout(() => setCopied(false), 1600);
   };
 
-  const fetchAnalytics = async (code: string, silent: boolean = false) => {
+  const fetchAnalytics = async (
+    code: string,
+    silent: boolean = false,
+    range: '24h' | '7d' | '30d' = timeRange
+  ) => {
     if (!code) return;
 
     setActiveCode(code);
@@ -84,7 +118,7 @@ export default function App() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE}/api/urls/${code}/analytics`);
+      const res = await fetch(`${API_BASE}/api/urls/${code}/analytics?range=${range}`);
       if (!res.ok) throw new Error('Short code not found');
       const data: AnalyticsResponse = await res.json();
       setAnalytics(data);
@@ -95,6 +129,13 @@ export default function App() {
         localStorage.setItem('pulselink_recent_codes', JSON.stringify(updated));
         return updated;
       });
+
+      if (data.summary) {
+        setLinkClicksMap((prev) => ({
+          ...prev,
+          [code]: data.summary.totalClicks,
+        }));
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -107,12 +148,20 @@ export default function App() {
     }
   };
 
+  const handleRangeChange = (range: '24h' | '7d' | '30d') => {
+    setTimeRange(range);
+    if (activeCode) {
+      fetchAnalytics(activeCode, true, range);
+    }
+  };
+
   useEffect(() => {
+    fetchRecentUrls();
     try {
       const savedCodes: string[] = JSON.parse(localStorage.getItem('pulselink_recent_codes') || '[]');
       const lastCreated = localStorage.getItem('pulselink_last_created_code') || savedCodes[0];
       if (lastCreated) {
-        fetchAnalytics(lastCreated);
+        fetchAnalytics(lastCreated, false, '24h');
       } else {
         setActiveCode('');
         setAnalytics(null);
@@ -126,9 +175,9 @@ export default function App() {
   // Poll analytics every 3s when live mode is toggled on
   useEffect(() => {
     if (!autoRefresh) return;
-    const iv = setInterval(() => fetchAnalytics(activeCode, true), 3000);
+    const iv = setInterval(() => fetchAnalytics(activeCode, true, timeRange), 3000);
     return () => clearInterval(iv);
-  }, [autoRefresh, activeCode]);
+  }, [autoRefresh, activeCode, timeRange]);
 
   // Simulate a redirect click to test the pipeline
   const handleSimulateClick = async () => {
@@ -153,7 +202,8 @@ export default function App() {
     } finally {
       // Brief delay to allow background queue worker to write to Postgres
       setTimeout(() => {
-        fetchAnalytics(activeCode, true);
+        fetchAnalytics(activeCode, true, timeRange);
+        fetchRecentUrls();
         setIsSimulating(false);
       }, 500);
     }
@@ -192,7 +242,7 @@ export default function App() {
       }
 
       if (updatedCodes.length > 0) {
-        fetchAnalytics(updatedCodes[0]);
+        fetchAnalytics(updatedCodes[0], false, timeRange);
       } else {
         setActiveCode('');
         setAnalytics(null);
@@ -225,7 +275,8 @@ export default function App() {
         <UrlShortener
           activeCode={activeCode}
           recentCodes={recentCodes}
-          onSelectCode={(code: string) => fetchAnalytics(code)}
+          linkClicksMap={linkClicksMap}
+          onSelectCode={(code: string) => fetchAnalytics(code, false, timeRange)}
           onUrlCreated={(code: string) => {
             localStorage.setItem('pulselink_last_created_code', code);
             setRecentCodes((prev) => {
@@ -233,7 +284,8 @@ export default function App() {
               localStorage.setItem('pulselink_recent_codes', JSON.stringify(updated));
               return updated;
             });
-            fetchAnalytics(code);
+            fetchAnalytics(code, false, timeRange);
+            fetchRecentUrls();
           }}
           apiBase={API_BASE}
         />
@@ -371,6 +423,8 @@ export default function App() {
               devices={analytics.devices}
               browsers={analytics.browsers}
               referrers={analytics.referrers}
+              timeRange={timeRange}
+              onRangeChange={handleRangeChange}
             />
           </>
         )}

@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis,
   Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import type { TimelinePoint, CountryStat, DeviceStat, BrowserStat, ReferrerStat, BreakdownItem } from '../types/analytics';
 
-type TabType = 'Countries' | 'Devices' | 'Browsers' | 'Referrers';
-type RangeType = '24h' | '7d' | '30d';
+export type TabType = 'Countries' | 'Devices' | 'Browsers' | 'Referrers';
+export type RangeType = '24h' | '7d' | '30d';
 
 const TABS: TabType[] = ['Countries', 'Devices', 'Browsers', 'Referrers'];
 
@@ -30,6 +30,8 @@ export interface AnalyticsChartsProps {
   devices?: DeviceStat[];
   browsers?: BrowserStat[];
   referrers?: ReferrerStat[];
+  timeRange?: RangeType;
+  onRangeChange?: (range: RangeType) => void;
 }
 
 export default function AnalyticsCharts({
@@ -38,9 +40,85 @@ export default function AnalyticsCharts({
   devices = [],
   browsers = [],
   referrers = [],
+  timeRange: propTimeRange,
+  onRangeChange,
 }: AnalyticsChartsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('Countries');
-  const [timeRange, setTimeRange] = useState<RangeType>('24h');
+  const [internalRange, setInternalRange] = useState<RangeType>('24h');
+  const activeRange = propTimeRange || internalRange;
+
+  const handleRangeSelect = (r: RangeType) => {
+    setInternalRange(r);
+    if (onRangeChange) {
+      onRangeChange(r);
+    }
+  };
+
+  // Build a continuous zero-filled baseline across the entire active range
+  const chartData = useMemo(() => {
+    if (!timeline) return [];
+
+    // Map existing timeline data by timestamp key
+    const dataMap = new Map<string, number>();
+    timeline.forEach((pt) => {
+      const rawKey = String(pt.time_bucket || '').trim();
+      if (!rawKey) return;
+      const count = Number(pt.clicks) || 0;
+      dataMap.set(rawKey, count);
+
+      // Also map date-only key "YYYY-MM-DD" for daily aggregation
+      if (rawKey.includes(' ')) {
+        const dateOnly = rawKey.split(' ')[0];
+        dataMap.set(dateOnly, (dataMap.get(dateOnly) || 0) + count);
+      }
+    });
+
+    // If backend already returned full pre-filled sequence from generate_series, return it directly
+    if (
+      (activeRange === '24h' && timeline.length >= 24) ||
+      (activeRange === '7d' && timeline.length >= 7) ||
+      (activeRange === '30d' && timeline.length >= 30)
+    ) {
+      return timeline;
+    }
+
+    // Client-side baseline fill for sparse datasets
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const buckets: TimelinePoint[] = [];
+
+    if (activeRange === '24h') {
+      for (let i = 23; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 3600 * 1000);
+        const hourKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:00`;
+        buckets.push({
+          time_bucket: hourKey,
+          clicks: dataMap.get(hourKey) || 0,
+        });
+      }
+    } else if (activeRange === '7d') {
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 86400 * 1000);
+        const dayKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        buckets.push({
+          time_bucket: dayKey,
+          clicks: dataMap.get(dayKey) || 0,
+        });
+      }
+    } else {
+      // 30d
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 86400 * 1000);
+        const dayKey = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        buckets.push({
+          time_bucket: dayKey,
+          clicks: dataMap.get(dayKey) || 0,
+        });
+      }
+    }
+
+    return buckets;
+  }, [timeline, activeRange]);
 
   // Normalize different metric structures into uniform { label, count } format
   const activeList: BreakdownItem[] =
@@ -76,7 +154,13 @@ export default function AnalyticsCharts({
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)] shrink-0">
             <div>
               <p className="text-xs font-semibold text-[var(--text-primary)]">Click Traffic</p>
-              <p className="text-[11px] text-[var(--text-muted)]">Hourly volume overview</p>
+              <p className="text-[11px] text-[var(--text-muted)]">
+                {activeRange === '24h'
+                  ? 'Last 24 hours hourly volume'
+                  : activeRange === '7d'
+                  ? 'Last 7 days daily volume'
+                  : 'Last 30 days daily volume'}
+              </p>
             </div>
 
             {/* Segmented range control (24h / 7d / 30d) */}
@@ -85,9 +169,9 @@ export default function AnalyticsCharts({
                 <button
                   key={r}
                   type="button"
-                  onClick={() => setTimeRange(r)}
+                  onClick={() => handleRangeSelect(r)}
                   className={`px-2 py-0.5 rounded-[5px] text-[11px] font-medium transition-smooth cursor-pointer ${
-                    timeRange === r
+                    activeRange === r
                       ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
@@ -99,15 +183,15 @@ export default function AnalyticsCharts({
           </div>
 
           <div className="flex-1 w-full min-h-0 pt-1">
-            {timeline && timeline.length > 0 ? (
+            {chartData && chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={timeline}
+                  data={chartData}
                   margin={{ top: 8, right: 12, left: -22, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient id="trafficGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.16} />
+                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.18} />
                       <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
@@ -120,31 +204,69 @@ export default function AnalyticsCharts({
 
                   <XAxis
                     dataKey="time_bucket"
-                    tick={{ fontSize: 10.5, fill: 'var(--text-muted)' }}
+                    tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
                     tickLine={false}
                     axisLine={{ stroke: 'var(--border)' }}
-                    interval="preserveStartEnd"
+                    interval={activeRange === '7d' ? 0 : activeRange === '30d' ? 5 : 3}
                     tickFormatter={(val: string) => {
                       if (!val) return '';
-                      const parts = val.split(' ');
-                      return parts[1] ? parts[1].slice(0, 5) : val.slice(5);
+                      if (activeRange === '24h') {
+                        const parts = val.split(' ');
+                        return parts[1] ? parts[1].slice(0, 5) : val.slice(11, 16);
+                      }
+                      // For 7d and 30d: format as Month Day (e.g., Nov 23)
+                      try {
+                        const parts = val.split('-');
+                        if (parts.length === 3) {
+                          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        }
+                      } catch {}
+                      return val.slice(5);
                     }}
                   />
                   <YAxis
-                    tick={{ fontSize: 10.5, fill: 'var(--text-muted)' }}
+                    tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
                     tickLine={false}
                     axisLine={false}
                     allowDecimals={false}
+                    domain={[0, 'auto']}
                     tickCount={4}
-                    width={30}
+                    width={28}
                   />
 
                   <Tooltip
                     content={({ active, payload, label }) => {
                       if (active && payload && payload.length) {
+                        const rawLabel = label !== undefined && label !== null ? String(label) : '';
+                        let formattedLabel = rawLabel;
+                        try {
+                          if (activeRange === '24h') {
+                            const d = new Date(rawLabel.includes(' ') ? rawLabel.replace(' ', 'T') : rawLabel);
+                            if (!isNaN(d.getTime())) {
+                              formattedLabel = d.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              });
+                            }
+                          } else {
+                            const parts = rawLabel.split('-');
+                            if (parts.length === 3) {
+                              const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                              formattedLabel = d.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              });
+                            }
+                          }
+                        } catch {}
+
                         return (
-                          <div className="bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-dropdown)] rounded-[var(--radius-control)] px-3 py-2 text-xs transition-smooth">
-                            <p className="text-[11px] text-[var(--text-muted)] font-mono mb-1">{label}</p>
+                          <div className="bg-[var(--surface)] border border-[var(--border)] shadow-xl rounded-[var(--radius-control)] px-3 py-2 text-xs transition-smooth">
+                            <p className="text-[11px] text-[var(--text-muted)] font-mono mb-1">{formattedLabel}</p>
                             <p className="font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
                               {payload[0].value} {Number(payload[0].value) === 1 ? 'click' : 'clicks'}
@@ -203,33 +325,39 @@ export default function AnalyticsCharts({
             </div>
           </div>
 
-          {/* Ranked Rows with 6px Track Bar */}
-          <div className="flex-1 w-full min-h-0 pt-2 overflow-y-auto pr-1 space-y-3">
-            {activeList.length > 0 ? (
+          <div className="flex-1 overflow-y-auto space-y-2.5 pr-0.5 custom-scrollbar pt-1">
+            {activeList && activeList.length > 0 ? (
               activeList.map((item, idx) => {
-                const percentage = totalListClicks > 0 ? Math.round((item.count / totalListClicks) * 100) : 0;
-                const barWidth = maxClicks > 0 ? Math.max(3, Math.round((item.count / maxClicks) * 100)) : 0;
+                const count = item.count;
+                const percentage = totalListClicks > 0 ? Math.round((count / totalListClicks) * 100) : 0;
+                const barWidth = Math.max(Math.round((count / maxClicks) * 100), 2);
                 const displayLabel = activeTab === 'Countries' ? formatCountryName(item.label) : item.label;
 
                 return (
-                  <div key={idx} className="space-y-1.5 group">
+                  <div key={idx} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-[var(--text-primary)] truncate max-w-[210px] sm:max-w-[260px]">
-                        {displayLabel}
-                      </span>
-                      <div className="flex items-center gap-2 tabular-nums">
-                        <span className="font-semibold text-[var(--text-primary)]">
-                          {item.count.toLocaleString()}
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-2">
+                        <span className="text-[11px] text-[var(--text-muted)] font-mono w-4 shrink-0">
+                          {idx + 1}
                         </span>
-                        <span className="text-[11px] text-[var(--text-muted)] w-8 text-right font-normal">
+                        <span className="font-medium text-[var(--text-primary)] truncate">
+                          {displayLabel}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[var(--text-primary)] font-semibold tabular-nums">
+                          {count}
+                        </span>
+                        <span className="text-[11px] text-[var(--text-muted)] tabular-nums w-8 text-right">
                           {percentage}%
                         </span>
                       </div>
                     </div>
-                    {/* 6px bar track */}
-                    <div className="w-full h-1.5 bg-[var(--surface-subtle)] rounded-full overflow-hidden">
+
+                    {/* Horizontal 6px progress track bar */}
+                    <div className="h-1.5 w-full rounded-full bg-[var(--surface-subtle)] overflow-hidden">
                       <div
-                        className="h-full bg-[var(--accent)] rounded-full transition-all duration-300 ease-out"
+                        className="h-full rounded-full bg-[var(--accent)] transition-all duration-300"
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
@@ -238,8 +366,8 @@ export default function AnalyticsCharts({
               })
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] py-8">
-                <span className="text-xl opacity-60">🌍</span>
-                <p className="text-xs">No distribution data recorded yet</p>
+                <span className="text-xl opacity-60">📊</span>
+                <p className="text-xs">No {activeTab.toLowerCase()} data recorded yet</p>
               </div>
             )}
           </div>
