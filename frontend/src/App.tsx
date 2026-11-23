@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import UrlShortener from './components/UrlShortener';
 import AnalyticsSummary from './components/AnalyticsSummary';
 import AnalyticsCharts from './components/AnalyticsCharts';
-import { ExternalLink, RefreshCw, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { ExternalLink, RefreshCw, Link as LinkIcon, Trash2, Copy, Check, MoreHorizontal } from 'lucide-react';
 import type { AnalyticsResponse } from './types/analytics';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
@@ -26,6 +26,9 @@ export default function App() {
   const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
+  const [overflowOpen, setOverflowOpen] = useState<boolean>(false);
+  const overflowRef = useRef<HTMLDivElement>(null);
 
   const [recentCodes, setRecentCodes] = useState<string[]>(() => {
     try {
@@ -39,6 +42,21 @@ export default function App() {
   const [error, setError] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
+  // Close overflow menu when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
+        setOverflowOpen(false);
+      }
+    };
+    if (overflowOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [overflowOpen]);
+
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -48,6 +66,14 @@ export default function App() {
     } finally {
       setTimeout(() => setIsRefreshing(false), 450);
     }
+  };
+
+  const handleCopyShortUrl = () => {
+    if (!activeCode) return;
+    const shortUrl = analytics?.url?.shortUrl || `${API_BASE}/${activeCode}`;
+    navigator.clipboard.writeText(shortUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
   };
 
   const fetchAnalytics = async (code: string, silent: boolean = false) => {
@@ -182,8 +208,12 @@ export default function App() {
     }
   };
 
+  const displayShortSlug = analytics?.url?.shortUrl
+    ? analytics.url.shortUrl.replace(/^https?:\/\//, '')
+    : `pulselink.app/${activeCode}`;
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--bg)] flex flex-col text-[var(--text-primary)] font-sans overflow-x-hidden transition-colors duration-150">
       <Navbar
         autoRefresh={autoRefresh}
         setAutoRefresh={setAutoRefresh}
@@ -191,7 +221,7 @@ export default function App() {
         isSimulating={isSimulating}
       />
 
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 flex flex-col gap-5">
+      <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 flex flex-col gap-6">
         <UrlShortener
           activeCode={activeCode}
           recentCodes={recentCodes}
@@ -208,23 +238,28 @@ export default function App() {
           apiBase={API_BASE}
         />
 
+        {/* Analytics Header */}
         {analytics && (
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 pt-1 gap-2 min-w-0">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider shrink-0">Analytics</span>
-              <code className="text-xs font-mono font-bold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-md shrink-0">
-                /{activeCode}
-              </code>
-
-              <button
-                onClick={() => handleDeleteUrl(activeCode)}
-                disabled={isDeleting}
-                className="flex items-center gap-1 text-[11px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 border border-red-200 px-2.5 py-0.5 rounded-md transition cursor-pointer disabled:opacity-50 shrink-0"
-                title={`Delete /${activeCode} and purge telemetry`}
-              >
-                <Trash2 className="w-3 h-3" />
-                <span>{isDeleting ? 'Deleting…' : 'Delete'}</span>
-              </button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 pb-2 border-b border-[var(--border)] min-w-0">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h1 className="font-mono text-lg sm:text-xl font-semibold tracking-tight text-[var(--text-primary)] truncate">
+                  {displayShortSlug}
+                </h1>
+                <button
+                  type="button"
+                  onClick={handleCopyShortUrl}
+                  className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-subtle)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  title={copied ? "Copied to clipboard!" : "Copy link"}
+                  aria-label="Copy short link"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-[var(--accent)]" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
 
               {analytics?.url?.originalUrl && (
                 <a
@@ -232,28 +267,94 @@ export default function App() {
                   target="_blank"
                   rel="noreferrer"
                   title={analytics.url.originalUrl}
-                  className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 hover:text-blue-600 transition max-w-md lg:max-w-xl truncate min-w-0"
+                  className="mt-1 inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors max-w-md sm:max-w-xl truncate min-w-0 group"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate">{analytics.url.originalUrl}</span>
+                  <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
                 </a>
               )}
             </div>
 
-            <button
-              onClick={handleManualRefresh}
-              disabled={isLoading || isRefreshing || isDeleting}
-              className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-blue-600 hover:bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200 hover:border-slate-300 transition cursor-pointer disabled:opacity-50 shrink-0 font-medium"
-              title="Reload latest analytics and recent links"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isLoading ? 'animate-spin text-blue-600' : ''}`} />
-              <span>{isRefreshing ? 'Refreshing…' : 'Refresh'}</span>
-            </button>
+            <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
+              {/* Ghost icon refresh button */}
+              <button
+                type="button"
+                onClick={handleManualRefresh}
+                disabled={isLoading || isRefreshing || isDeleting}
+                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-subtle)] transition-colors cursor-pointer disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                title="Reload latest analytics"
+                aria-label="Refresh analytics"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${
+                    isRefreshing || isLoading ? 'animate-spin text-[var(--accent)]' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Overflow "⋯" Menu */}
+              <div className="relative" ref={overflowRef}>
+                <button
+                  type="button"
+                  onClick={() => setOverflowOpen((prev) => !prev)}
+                  className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-subtle)] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  title="More actions"
+                  aria-label="More actions"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
+
+                {overflowOpen && (
+                  <div className="absolute right-0 mt-1 w-44 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg z-30 py-1 text-xs animate-in fade-in zoom-in-95 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOverflowOpen(false);
+                        handleDeleteUrl(activeCode);
+                      }}
+                      disabled={isDeleting}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[var(--text-secondary)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                      <span>{isDeleting ? 'Deleting link…' : 'Delete short link'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
         {error && (
-          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+          <p className="text-xs text-red-600 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/40 rounded-lg px-3.5 py-2.5">
+            {error}
+          </p>
+        )}
+
+        {/* Skeleton placeholder while initial loading */}
+        {isLoading && !analytics && (
+          <div className="flex flex-col gap-6 animate-pulse" aria-hidden="true">
+            {/* KPI Skeleton Card */}
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 h-24 flex divide-x divide-[var(--border)]">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex-1 px-4 first:pl-0 flex flex-col justify-between">
+                  <div className="h-3 w-16 bg-[var(--surface-subtle)] rounded"></div>
+                  <div className="h-7 w-24 bg-[var(--surface-subtle)] rounded"></div>
+                </div>
+              ))}
+            </div>
+            {/* Charts Skeleton Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 h-80 flex flex-col justify-between">
+                <div className="h-4 w-32 bg-[var(--surface-subtle)] rounded"></div>
+                <div className="h-56 bg-[var(--surface-subtle)] rounded"></div>
+              </div>
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 h-80 flex flex-col justify-between">
+                <div className="h-4 w-32 bg-[var(--surface-subtle)] rounded"></div>
+                <div className="h-56 bg-[var(--surface-subtle)] rounded"></div>
+              </div>
+            </div>
+          </div>
         )}
 
         {analytics && (
@@ -275,21 +376,21 @@ export default function App() {
         )}
 
         {!analytics && !error && !isLoading && (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 sm:p-14 text-center shadow-xs flex flex-col items-center justify-center my-3">
-            <div className="w-14 h-14 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-3.5 shadow-xs">
-              <LinkIcon className="w-6 h-6" />
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 sm:p-16 text-center shadow-xs flex flex-col items-center justify-center my-4 transition-colors">
+            <div className="w-12 h-12 rounded-full bg-[var(--surface-subtle)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)] mb-3.5 shadow-xs">
+              <LinkIcon className="w-5 h-5" />
             </div>
-            <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-1">
-              You haven't created any links yet
+            <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">
+              No link selected
             </h3>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-sm leading-relaxed">
-              Paste a long URL above and click <span className="font-semibold text-blue-600">Shorten →</span> to generate your first link and view real-time click telemetry.
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] max-w-sm leading-relaxed">
+              Paste a URL above to shorten it, or select an existing link from your chips to inspect real-time click telemetry.
             </p>
           </div>
         )}
       </main>
 
-      <footer className="border-t border-slate-200 py-4 text-center text-xs text-slate-400 bg-white">
+      <footer className="border-t border-[var(--border)] py-4 text-center text-xs text-[var(--text-muted)] bg-[var(--surface)] transition-colors">
         PulseLink Enterprise Telemetry • Node.js • PostgreSQL • Redis • BullMQ • React
       </footer>
     </div>

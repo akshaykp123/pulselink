@@ -1,5 +1,5 @@
-import React from 'react';
-import { Activity, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Activity, RefreshCw, Sun, Moon } from 'lucide-react';
 
 export interface NavbarProps {
   autoRefresh: boolean;
@@ -14,41 +14,97 @@ export default function Navbar({
   onSimulateClick,
   isSimulating,
 }: NavbarProps): React.JSX.Element {
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('pulselink_theme') === 'dark';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('pulselink_theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('pulselink_theme', 'light');
+    }
+  }, [isDark]);
+
   return (
-    <header className="border-b border-slate-200 bg-white sticky top-0 z-50 h-16 sm:h-[68px] flex items-center">
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 min-w-0">
-        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-60"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600 shadow-xs"></span>
+    <header className="border-b border-[var(--border)] bg-[var(--surface)] sticky top-0 z-50 h-14 flex items-center transition-smooth">
+      <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 min-w-0">
+        {/* Brand: PulseLink at weight 600 + quiet muted console */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-6 h-6 rounded-[6px] bg-[var(--accent)] flex items-center justify-center text-white shadow-xs">
+            <Activity className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
+            PulseLink
           </span>
-          <span className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">PulseLink</span>
-          <span className="text-base text-slate-300 select-none font-light">/</span>
-          <span className="text-xs sm:text-sm font-bold text-slate-600 uppercase tracking-wider bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 rounded-md">Console</span>
+          <span className="text-xs font-normal text-[var(--text-muted)] tracking-normal pl-0.5">
+            console
+          </span>
         </div>
 
-        <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+        {/* Actions: Live switch, secondary outlined button, theme toggle */}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Live switch with pulsing green dot when active */}
           <button
+            type="button"
+            role="switch"
+            aria-checked={autoRefresh}
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-lg border text-xs sm:text-sm font-semibold transition cursor-pointer shrink-0 shadow-2xs ${
-              autoRefresh
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-xs'
-                : 'bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:border-slate-300'
-            }`}
+            className="flex items-center gap-2 cursor-pointer select-none py-1 px-2 rounded-[var(--radius-control)] hover:bg-[var(--surface-subtle)] transition-smooth focus-ring"
           >
-            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${autoRefresh ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-            <span>{autoRefresh ? 'Live (3s)' : 'Live Off'}</span>
+            <div className="relative inline-flex items-center">
+              <div
+                className={`w-7 h-4 rounded-full transition-smooth ${
+                  autoRefresh ? 'bg-[var(--accent)]' : 'bg-[var(--border)]'
+                }`}
+              />
+              <div
+                className={`absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full transition-smooth shadow-xs ${
+                  autoRefresh ? 'translate-x-3' : 'translate-x-0'
+                }`}
+              />
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)]">
+              {autoRefresh && (
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                </span>
+              )}
+              <span>Live</span>
+            </div>
           </button>
 
+          {/* Secondary outlined button for Simulate Click */}
           <button
             onClick={onSimulateClick}
             disabled={isSimulating}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold transition cursor-pointer shadow-sm hover:shadow active:scale-95 shrink-0"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-[var(--radius-control)] border border-[var(--border)] bg-transparent hover:bg-[var(--surface-subtle)] active:bg-[var(--surface-hover)] text-xs font-medium text-[var(--text-primary)] transition-smooth focus-ring disabled:opacity-50 cursor-pointer shadow-xs"
+            title="Simulate redirect click event"
           >
-            {isSimulating
-              ? <RefreshCw className="w-4 h-4 animate-spin" />
-              : <Activity className="w-4 h-4" />}
+            {isSimulating ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--text-muted)]" />
+            ) : (
+              <Activity className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            )}
             <span>{isSimulating ? 'Logging…' : 'Simulate Click'}</span>
+          </button>
+
+          {/* Light / Dark Mode Toggle */}
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="w-8 h-8 rounded-[var(--radius-control)] border border-[var(--border)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-subtle)] transition-smooth focus-ring cursor-pointer"
+            title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+          >
+            {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>

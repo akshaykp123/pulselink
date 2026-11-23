@@ -1,29 +1,28 @@
 import React, { useState } from 'react';
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis,
+  AreaChart, Area, XAxis, YAxis,
   Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import type { TimelinePoint, CountryStat, DeviceStat, BrowserStat, ReferrerStat, BreakdownItem } from '../types/analytics';
 
 type TabType = 'Countries' | 'Devices' | 'Browsers' | 'Referrers';
+type RangeType = '24h' | '7d' | '30d';
 
 const TABS: TabType[] = ['Countries', 'Devices', 'Browsers', 'Referrers'];
 
-const tooltipStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #e2e8f0',
-  borderRadius: '8px',
-  fontSize: '11.5px',
-  padding: '6px 10px',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-  color: '#0f172a',
-};
-
-const axisProps = {
-  tick: { fontSize: 11, fill: '#64748b' },
-  tickLine: false,
-  axisLine: false,
-};
+function formatCountryName(countryCodeOrName: string): string {
+  if (!countryCodeOrName || countryCodeOrName === 'Unknown') return 'Unknown';
+  if (countryCodeOrName === 'Localhost (Dev)' || countryCodeOrName === 'Localhost') return 'Localhost (Dev)';
+  if (countryCodeOrName.length === 2) {
+    try {
+      const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+      return regionNames.of(countryCodeOrName.toUpperCase()) || countryCodeOrName;
+    } catch {
+      return countryCodeOrName;
+    }
+  }
+  return countryCodeOrName;
+}
 
 export interface AnalyticsChartsProps {
   timeline?: TimelinePoint[];
@@ -41,6 +40,7 @@ export default function AnalyticsCharts({
   referrers = [],
 }: AnalyticsChartsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('Countries');
+  const [timeRange, setTimeRange] = useState<RangeType>('24h');
 
   // Normalize different metric structures into uniform { label, count } format
   const activeList: BreakdownItem[] =
@@ -53,6 +53,7 @@ export default function AnalyticsCharts({
       : referrers.map((r) => ({ label: r.referrer || 'Direct', count: Number(r.clicks) }));
 
   const totalListClicks = activeList.reduce((acc, curr) => acc + curr.count, 0);
+  const maxClicks = Math.max(...activeList.map((i) => i.count), 1);
 
   return (
     <>
@@ -63,48 +64,65 @@ export default function AnalyticsCharts({
           gap: 16px;
           width: 100%;
         }
-        @media (max-width: 768px) {
+        @media (max-width: 860px) {
           .charts-responsive-grid {
             grid-template-columns: 1fr;
           }
         }
       `}</style>
       <div className="charts-responsive-grid">
-        {/* Hourly Traffic Area Chart */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col min-w-0 shadow-xs" style={{ height: '300px' }}>
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 shrink-0">
+        {/* ── LEFT: Click Traffic Area Chart ── */}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px' }}>
+          <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)] shrink-0">
             <div>
-              <p className="text-sm font-bold text-slate-800">Click Traffic</p>
-              <p className="text-[11px] text-slate-400">Hourly aggregation</p>
+              <p className="text-xs font-semibold text-[var(--text-primary)]">Click Traffic</p>
+              <p className="text-[11px] text-[var(--text-muted)]">Hourly volume overview</p>
             </div>
-            <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100">
-              24h
-            </span>
+
+            {/* Segmented range control (24h / 7d / 30d) */}
+            <div className="flex items-center p-0.5 rounded-[var(--radius-control)] bg-[var(--surface-subtle)] border border-[var(--border)] shrink-0">
+              {(['24h', '7d', '30d'] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setTimeRange(r)}
+                  className={`px-2 py-0.5 rounded-[5px] text-[11px] font-medium transition-smooth cursor-pointer ${
+                    timeRange === r
+                      ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex-1 w-full min-h-0">
+          <div className="flex-1 w-full min-h-0 pt-1">
             {timeline && timeline.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={timeline}
-                  margin={{ top: 8, right: 10, left: -20, bottom: 0 }}
+                  margin={{ top: 8, right: 12, left: -22, bottom: 0 }}
                 >
                   <defs>
-                    <linearGradient id="trafficGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%"   stopColor="#2563eb" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#2563eb" stopOpacity={0.02} />
+                    <linearGradient id="trafficGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.16} />
+                      <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
 
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="#f1f5f9"
+                    stroke="var(--border)"
                     vertical={false}
                   />
 
                   <XAxis
                     dataKey="time_bucket"
-                    {...axisProps}
+                    tick={{ fontSize: 10.5, fill: 'var(--text-muted)' }}
+                    tickLine={false}
+                    axisLine={{ stroke: 'var(--border)' }}
                     interval="preserveStartEnd"
                     tickFormatter={(val: string) => {
                       if (!val) return '';
@@ -113,58 +131,70 @@ export default function AnalyticsCharts({
                     }}
                   />
                   <YAxis
-                    {...axisProps}
+                    tick={{ fontSize: 10.5, fill: 'var(--text-muted)' }}
+                    tickLine={false}
+                    axisLine={false}
                     allowDecimals={false}
-                    width={28}
+                    tickCount={4}
+                    width={30}
                   />
 
                   <Tooltip
-                    contentStyle={tooltipStyle}
-                    cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }}
-                    formatter={(value: any) => [`${value} click${Number(value) === 1 ? '' : 's'}`, 'Traffic']}
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-dropdown)] rounded-[var(--radius-control)] px-3 py-2 text-xs transition-smooth">
+                            <p className="text-[11px] text-[var(--text-muted)] font-mono mb-1">{label}</p>
+                            <p className="font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)]" />
+                              {payload[0].value} {Number(payload[0].value) === 1 ? 'click' : 'clicks'}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
                   />
 
                   <Area
                     type="monotone"
                     dataKey="clicks"
-                    stroke="#2563eb"
-                    strokeWidth={2.5}
-                    fill="url(#trafficGrad)"
+                    stroke="var(--accent)"
+                    strokeWidth={2}
+                    fill="url(#trafficGradient)"
                     dot={false}
-                    activeDot={{ r: 4, fill: '#2563eb', stroke: '#fff', strokeWidth: 2 }}
+                    activeDot={{ r: 4, fill: 'var(--accent)', stroke: 'var(--surface)', strokeWidth: 2 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center gap-1.5 text-slate-400">
-                <span className="text-2xl">📊</span>
-                <p className="text-xs">No traffic yet — click "Simulate Click" above</p>
+              <div className="h-full flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] py-8">
+                <span className="text-xl opacity-60">📈</span>
+                <p className="text-xs">No traffic yet — click Simulate Click above</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Breakdown Bar Chart */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 flex flex-col min-w-0 shadow-xs" style={{ height: '300px' }}>
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 shrink-0 gap-2">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <p className="text-sm font-bold text-slate-800">Breakdown</p>
-              {activeList.length > 0 && (
-                <span className="text-[11px] font-normal text-slate-400">
-                  ({activeList.length})
-                </span>
-              )}
+        {/* ── RIGHT: Breakdown Ranked Rows (Vercel/Linear Style) ── */}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 flex flex-col min-w-0 shadow-[var(--shadow-card)] transition-smooth" style={{ height: '330px' }}>
+          <div className="flex items-center justify-between pb-3 mb-2 border-b border-[var(--border)] shrink-0 gap-2">
+            <div>
+              <p className="text-xs font-semibold text-[var(--text-primary)]">Breakdown</p>
+              <p className="text-[11px] text-[var(--text-muted)]">Audience distribution</p>
             </div>
 
-            <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 border border-slate-200/80 shrink-0">
+            {/* Segmented category tabs */}
+            <div className="flex items-center p-0.5 rounded-[var(--radius-control)] bg-[var(--surface-subtle)] border border-[var(--border)] shrink-0">
               {TABS.map((tab) => (
                 <button
                   key={tab}
+                  type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-semibold transition cursor-pointer shrink-0 ${
+                  className={`px-2 py-0.5 rounded-[5px] text-[11px] font-medium transition-smooth cursor-pointer ${
                     activeTab === tab
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
+                      ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-xs'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                   }`}
                 >
                   {tab}
@@ -173,50 +203,42 @@ export default function AnalyticsCharts({
             </div>
           </div>
 
-          <div className="flex-1 w-full min-h-0 pt-1">
+          {/* Ranked Rows with 6px Track Bar */}
+          <div className="flex-1 w-full min-h-0 pt-2 overflow-y-auto pr-1 space-y-3">
             {activeList.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={activeList}
-                  layout="vertical"
-                  margin={{ top: 4, right: 20, left: 10, bottom: 4 }}
-                  barSize={14}
-                  barCategoryGap="24%"
-                >
-                  <XAxis
-                    type="number"
-                    {...axisProps}
-                    allowDecimals={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="label"
-                    {...axisProps}
-                    width={95}
-                    tick={{ fontSize: 11, fill: '#334155', fontWeight: 500 }}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    cursor={{ fill: '#f8fafc' }}
-                    formatter={(value: any) => {
-                      const num = Number(value);
-                      return [
-                        `${num} click${num === 1 ? '' : 's'}${totalListClicks > 0 ? ` (${Math.round((num / totalListClicks) * 100)}%)` : ''}`,
-                        'Clicks',
-                      ];
-                    }}
-                  />
-                  <Bar
-                    dataKey="count"
-                    radius={[0, 4, 4, 0]}
-                    fill="#2563eb"
-                    background={{ fill: '#f1f5f9', radius: 4 }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              activeList.map((item, idx) => {
+                const percentage = totalListClicks > 0 ? Math.round((item.count / totalListClicks) * 100) : 0;
+                const barWidth = maxClicks > 0 ? Math.max(3, Math.round((item.count / maxClicks) * 100)) : 0;
+                const displayLabel = activeTab === 'Countries' ? formatCountryName(item.label) : item.label;
+
+                return (
+                  <div key={idx} className="space-y-1.5 group">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-[var(--text-primary)] truncate max-w-[210px] sm:max-w-[260px]">
+                        {displayLabel}
+                      </span>
+                      <div className="flex items-center gap-2 tabular-nums">
+                        <span className="font-semibold text-[var(--text-primary)]">
+                          {item.count.toLocaleString()}
+                        </span>
+                        <span className="text-[11px] text-[var(--text-muted)] w-8 text-right font-normal">
+                          {percentage}%
+                        </span>
+                      </div>
+                    </div>
+                    {/* 6px bar track */}
+                    <div className="w-full h-1.5 bg-[var(--surface-subtle)] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[var(--accent)] rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${barWidth}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
             ) : (
-              <div className="h-full flex flex-col items-center justify-center gap-1.5 text-slate-400">
-                <span className="text-2xl">🌍</span>
+              <div className="h-full flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] py-8">
+                <span className="text-xl opacity-60">🌍</span>
                 <p className="text-xs">No distribution data recorded yet</p>
               </div>
             )}

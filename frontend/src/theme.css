@@ -1,0 +1,106 @@
+:root {
+  /* Light Theme Base Tokens (Default) */
+  --bg: #F8F9FB;
+  --surface: #FFFFFF;
+  --surface-subtle: #F2F4F7;
+  --surface-hover: #ECEEF2;
+  --border: #E7E9EE;
+  --border-subtle: #F0F2F6;
+
+  /* Typography Colors */
+  --text-primary: #0F1218;
+  --text-secondary: #5B6270;
+  --text-muted: #8A91A0;
+
+  /* Single Blue Accent (Linear/Vercel Blue) */
+  --accent: #2563EB;
+  --accent-hover: #1D4ED8;
+  --accent-subtle: rgba(37, 99, 235, 0.08);
+  --accent-border: rgba(37, 99, 235, 0.22);
+
+  /* Geometry & Spacing */
+  --radius-card: 12px;
+  --radius-control: 8px;
+
+  /* Subtle Soft Shadows */
+  --shadow-soft: 0 1px 2px 0 rgba(15, 18, 24, 0.04);
+  --shadow-card: 0 1px 3px 0 rgba(15, 18, 24, 0.05), 0 1px 2px -1px rgba(15, 18, 24, 0.05);
+  --shadow-dropdown: 0 10px 25px -5px rgba(15, 18, 24, 0.08), 0 8px 10px -6px rgba(15, 18, 24, 0.04);
+}
+
+[data-theme='dark'],
+.dark {
+  /* Dark Theme Base Tokens */
+  --bg: #0D0F12;
+  --surface: #16191E;
+  --surface-subtle: #1C2027;
+  --surface-hover: #232832;
+  --border: #262A33;
+  --border-subtle: #1F232B;
+
+  /* Typography Colors */
+  --text-primary: #F0F2F5;
+  --text-secondary: #A0A6B2;
+  --text-muted: #686E7D;
+
+  /* Single Blue Accent */
+  --accent: #3B82F6;
+  --accent-hover: #60A5FA;
+  --accent-subtle: rgba(59, 130, 246, 0.12);
+  --accent-border: rgba(59, 130, 246, 0.28);
+
+  /* Shadows */
+  --shadow-soft: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --shadow-dropdown: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Thin Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Focus Ring */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 150ms Ease-Out Transition Utility */
+.transition-smooth {
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Shimmer animation for skeleton loaders */
+@keyframes pulse-shimmer {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+  100% { opacity: 0.5; }
+}
+
+.skeleton-shimmer {
+  animation: pulse-shimmer 1.8s ease-in-out infinite;
+  background-color: var(--surface-subtle);
+}

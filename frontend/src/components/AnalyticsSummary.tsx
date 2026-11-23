@@ -11,7 +11,21 @@ interface StatItem {
   label: string;
   value: string | number;
   sub: string;
-  color: string;
+}
+
+// Display mapping from ISO-3166 2-letter country code to full readable country name
+function getDisplayCountry(rawCountry?: string): string {
+  if (!rawCountry || rawCountry === 'Unknown') return 'No Data';
+  if (rawCountry === 'Localhost (Dev)' || rawCountry === 'Localhost') return 'Localhost (Dev)';
+  if (rawCountry.length === 2) {
+    try {
+      const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+      return regionNames.of(rawCountry.toUpperCase()) || rawCountry;
+    } catch {
+      return rawCountry;
+    }
+  }
+  return rawCountry;
 }
 
 export default function AnalyticsSummary({
@@ -19,44 +33,42 @@ export default function AnalyticsSummary({
   countries,
   devices,
 }: AnalyticsSummaryProps): React.JSX.Element {
+  const topCountry = getDisplayCountry(countries?.[0]?.country);
+
   const stats: StatItem[] = [
     {
       label: 'Total Clicks',
       value: summary?.totalClicks ?? 0,
-      sub: 'All time',
-      color: 'text-blue-600',
+      sub: 'All time redirects',
     },
     {
       label: 'Unique Visitors',
       value: summary?.uniqueVisitors ?? 0,
-      sub: 'By visitor hash',
-      color: 'text-indigo-600',
+      sub: 'Distinct visitor hash',
     },
     {
       label: 'Top Location',
-      value: countries?.[0]?.country || 'No Data',
-      sub: countries?.[0]?.clicks ? `${countries[0].clicks} clicks` : '—',
-      color: 'text-emerald-600',
+      value: topCountry,
+      sub: countries?.[0]?.clicks ? `${Number(countries[0].clicks).toLocaleString()} clicks` : 'No data yet',
     },
     {
       label: 'Primary Device',
       value: devices?.[0]?.device_type || 'No Data',
-      sub: devices?.[0]?.clicks ? `${devices[0].clicks} hits` : '—',
-      color: 'text-amber-600',
+      sub: devices?.[0]?.clicks ? `${Number(devices[0].clicks).toLocaleString()} hits` : 'No data yet',
     },
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100 overflow-hidden">
+    <div className="bg-[var(--surface)] rounded-[var(--radius-card)] border border-[var(--border)] shadow-[var(--shadow-card)] grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] overflow-hidden transition-smooth">
       {stats.map((s, i) => (
-        <div key={i} className="px-5 sm:px-6 py-4 sm:py-5 min-w-0">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider truncate mb-1">
+        <div key={i} className="px-5 py-4 sm:px-6 sm:py-5 min-w-0">
+          <p className="text-xs font-medium text-[var(--text-secondary)] tracking-tight truncate mb-2">
             {s.label}
           </p>
-          <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-none truncate tabular-nums my-1">
-            {s.value}
+          <p className="text-[28px] sm:text-[30px] font-semibold text-[var(--text-primary)] leading-none truncate tabular-nums tracking-tight my-1">
+            {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
           </p>
-          <p className="text-xs text-slate-400 truncate mt-1">
+          <p className="text-[11px] text-[var(--text-muted)] truncate mt-2 font-normal">
             {s.sub}
           </p>
         </div>
