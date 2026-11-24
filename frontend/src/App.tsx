@@ -5,6 +5,7 @@ import AnalyticsSummary from './components/AnalyticsSummary';
 import AnalyticsCharts from './components/AnalyticsCharts';
 import { ExternalLink, RefreshCw, Trash2, Copy, Check, MoreHorizontal, AlertCircle, X, Link as LinkIcon, ChevronDown, Loader2 } from 'lucide-react';
 import type { AnalyticsResponse } from './types/analytics';
+import { getOrCreateDeviceId } from './utils/device';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
@@ -95,10 +96,18 @@ export default function App() {
     setSharedShortenError('');
 
     try {
+      const deviceId = getOrCreateDeviceId();
       const res = await fetch(`${API_BASE}/api/urls`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ originalUrl: sharedOriginalUrl.trim(), customAlias: trimmedAlias || undefined }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-device-id': deviceId,
+        },
+        body: JSON.stringify({
+          originalUrl: sharedOriginalUrl.trim(),
+          customAlias: trimmedAlias || undefined,
+          deviceId,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -132,25 +141,38 @@ export default function App() {
     }
   };
 
-  // Fetch all recent shortened links from backend
+  // Fetch recent shortened links from backend scoped to this device
   const fetchRecentUrls = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/urls`);
+      const deviceId = getOrCreateDeviceId();
+      const res = await fetch(`${API_BASE}/api/urls`, {
+        headers: {
+          'x-device-id': deviceId,
+        },
+      });
       if (!res.ok) return;
       const data: Array<{ short_code: string; clicks_count?: number | string }> = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         const clicksMap: Record<string, number> = {};
         const serverCodes = data.map((item) => {
           clicksMap[item.short_code] = Number(item.clicks_count) || 0;
           return item.short_code;
         });
 
-        setRecentCodes((prev) => {
-          const merged = Array.from(new Set([...prev, ...serverCodes]));
-          localStorage.setItem('pulselink_recent_codes', JSON.stringify(merged));
-          return merged;
-        });
+        // The list is strictly scoped to this device's created links
+        setRecentCodes(serverCodes);
+        localStorage.setItem('pulselink_recent_codes', JSON.stringify(serverCodes));
         setLinkClicksMap((prev) => ({ ...prev, ...clicksMap }));
+
+        // Auto-select latest link if activeCode is empty and this device has links
+        setActiveCode((curr) => {
+          if (!curr && serverCodes.length > 0) {
+            const initial = serverCodes[0];
+            fetchAnalytics(initial, false, timeRange);
+            return initial;
+          }
+          return curr;
+        });
       }
     } catch {
       // Ignore background fetch error
@@ -229,6 +251,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    getOrCreateDeviceId();
     fetchRecentUrls();
     try {
       const savedCodes: string[] = JSON.parse(localStorage.getItem('pulselink_recent_codes') || '[]');

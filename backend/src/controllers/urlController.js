@@ -35,6 +35,12 @@ export async function shortenUrl(req, res) {
       return res.status(400).json({ error: 'Invalid URL format' });
     }
 
+    // Extract optional anonymous device ID for client isolation
+    const rawDeviceId = req.headers['x-device-id'] || req.body?.deviceId || null;
+    const cleanDeviceId = rawDeviceId && typeof rawDeviceId === 'string' && rawDeviceId.trim()
+      ? rawDeviceId.trim().substring(0, 64)
+      : null;
+
     // Handle custom alias
     if (customAlias !== undefined && customAlias !== null && String(customAlias).trim() !== '') {
       const cleanAlias = String(customAlias).trim();
@@ -69,10 +75,10 @@ export async function shortenUrl(req, res) {
       }
 
       const insertResult = await pool.query(
-        `INSERT INTO urls (short_code, original_url, custom_alias)
-         VALUES ($1, $2, $1)
-         RETURNING id, short_code, original_url, created_at`,
-        [cleanAlias, originalUrl]
+        `INSERT INTO urls (short_code, original_url, custom_alias, device_id)
+         VALUES ($1, $2, $1, $3)
+         RETURNING id, short_code, original_url, created_at, device_id`,
+        [cleanAlias, originalUrl, cleanDeviceId]
       );
       const newUrl = insertResult.rows[0];
 
@@ -88,6 +94,7 @@ export async function shortenUrl(req, res) {
         shortUrl: `${BASE_URL}/${newUrl.short_code}`,
         originalUrl: newUrl.original_url,
         createdAt: newUrl.created_at,
+        deviceId: newUrl.device_id,
       });
     }
 
@@ -97,10 +104,10 @@ export async function shortenUrl(req, res) {
     const shortCode = encodeBase62(generatedId);
 
     const insertResult = await pool.query(
-      `INSERT INTO urls (id, short_code, original_url)
-       VALUES ($1, $2, $3)
-       RETURNING id, short_code, original_url, created_at`,
-      [generatedId, shortCode, originalUrl]
+      `INSERT INTO urls (id, short_code, original_url, device_id)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, short_code, original_url, created_at, device_id`,
+      [generatedId, shortCode, originalUrl, cleanDeviceId]
     );
     const newUrl = insertResult.rows[0];
 
@@ -117,6 +124,7 @@ export async function shortenUrl(req, res) {
       shortUrl: `${BASE_URL}/${newUrl.short_code}`,
       originalUrl: newUrl.original_url,
       createdAt: newUrl.created_at,
+      deviceId: newUrl.device_id,
     });
   } catch (error) {
     console.error('Error shortening URL:', error);
@@ -124,11 +132,26 @@ export async function shortenUrl(req, res) {
   }
 }
 
-// Get recent short links
+// Get recent short links (scoped to device if x-device-id header or query is present)
 export async function getRecentUrls(req, res) {
   try {
+    const rawDeviceId = req.headers['x-device-id'] || req.query.deviceId || null;
+    const cleanDeviceId = rawDeviceId && typeof rawDeviceId === 'string' && rawDeviceId.trim()
+      ? rawDeviceId.trim().substring(0, 64)
+      : null;
+
+    if (!cleanDeviceId) {
+      // If no device ID is provided, return empty list to protect client data isolation
+      return res.json([]);
+    }
+
     const result = await pool.query(
-      'SELECT id, short_code, original_url, clicks_count, created_at FROM urls ORDER BY created_at DESC LIMIT 30'
+      `SELECT id, short_code, original_url, clicks_count, created_at, device_id
+       FROM urls
+       WHERE device_id = $1
+       ORDER BY created_at DESC
+       LIMIT 30`,
+      [cleanDeviceId]
     );
     return res.json(result.rows);
   } catch (error) {

@@ -5,6 +5,7 @@ import {
   Search, Link as LinkIcon
 } from 'lucide-react';
 import type { UrlData } from '../types/analytics';
+import { getOrCreateDeviceId } from '../utils/device';
 
 export interface UrlShortenerProps {
   onUrlCreated?: (shortCode: string) => void;
@@ -93,10 +94,18 @@ export default function UrlShortener({
     setError('');
 
     try {
+      const deviceId = getOrCreateDeviceId();
       const res = await fetch(`${apiBase}/api/urls`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ originalUrl, customAlias: trimmedAlias || undefined }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-device-id': deviceId,
+        },
+        body: JSON.stringify({
+          originalUrl,
+          customAlias: trimmedAlias || undefined,
+          deviceId,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {

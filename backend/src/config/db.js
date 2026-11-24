@@ -23,4 +23,17 @@ pool.on('error', (err) => {
   console.error('❌ Unexpected PostgreSQL error:', err);
 });
 
+// Auto-migration: ensure device_id column and index exist on urls table
+export async function initDb() {
+  try {
+    await pool.query(`
+      ALTER TABLE urls ADD COLUMN IF NOT EXISTS device_id VARCHAR(64);
+      CREATE INDEX IF NOT EXISTS idx_urls_device_id ON urls(device_id);
+    `);
+    console.log('✅ Database migration applied: device_id column & index verified');
+  } catch (err) {
+    console.warn('⚠️ Non-fatal DB migration notice:', err.message);
+  }
+}
+
 export default pool;

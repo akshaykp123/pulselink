@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS urls (
     original_url TEXT NOT NULL,                   
     custom_alias VARCHAR(32) UNIQUE,                -- Optional custom name 
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, -- Link to users table
+    device_id VARCHAR(64),                          -- Anonymous client/device session token
     clicks_count BIGINT NOT NULL DEFAULT 0,         -- Fast counter for summary cards
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -45,6 +46,7 @@ CREATE TABLE IF NOT EXISTS clicks (
 -- Fast lookup by short_code when redirecting:
 
 CREATE INDEX IF NOT EXISTS idx_urls_short_code ON urls(short_code);
+CREATE INDEX IF NOT EXISTS idx_urls_device_id ON urls(device_id);
 
 -- Fast lookup for analytics charts (fetches all clicks for a URL ordered by date):
 
