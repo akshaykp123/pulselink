@@ -44,10 +44,10 @@ export default function AnalyticsSummary({
       sub: 'All time redirects',
     },
     {
-      label: 'Unique Visitors',
+      label: 'Unique Clicks',
       value: summary?.uniqueVisitors ?? 0,
       isNumeric: true,
-      sub: 'Distinct visitor hash',
+      sub: 'Distinct client sessions',
     },
     {
       label: 'Top Location',

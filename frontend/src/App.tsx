@@ -517,9 +517,9 @@ export default function App() {
             {analytics && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border)] min-w-0">
                 <div className="min-w-0 flex-1">
-                  {/* Desktop Title: domain prefix + slug */}
-                  <div className="hidden sm:flex items-center gap-2 min-w-0">
-                    <h1 className="font-mono text-[20px] font-semibold tracking-tight truncate">
+                  {/* Short Link Title & Quick Copy (Unified across Desktop & Mobile) */}
+                  <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0">
+                    <h1 className="font-mono text-base sm:text-[20px] font-semibold tracking-tight break-all sm:truncate">
                       <span className="text-[var(--text-secondary)]">{domainPrefix}</span>
                       <span className="text-[var(--text-primary)]">{slugPart}</span>
                     </h1>
@@ -536,31 +536,6 @@ export default function App() {
                         <Copy className="w-4 h-4" />
                       )}
                     </button>
-                  </div>
-
-                  {/* Mobile Title: Large slug in mono + full short URL below with word-break */}
-                  <div className="sm:hidden min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h1 className="font-mono text-xl font-bold tracking-tight text-[var(--text-primary)] break-all">
-                        /{slugPart || activeCode}
-                      </h1>
-                      <button
-                        type="button"
-                        onClick={handleCopyShortUrl}
-                        className="p-2 rounded-[var(--radius-control)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth cursor-pointer focus-ring shrink-0"
-                        title={copied ? "Copied to clipboard!" : "Copy link"}
-                        aria-label="Copy short link"
-                      >
-                        {copied ? (
-                          <Check className="w-4 h-4 text-[var(--accent-text)]" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                    <p className="mt-1 text-xs text-[var(--text-secondary)] break-all font-mono leading-relaxed">
-                      {analytics?.url?.shortUrl || `${API_BASE}/${activeCode}`}
-                    </p>
                   </div>
 
                   {analytics?.url?.originalUrl && (

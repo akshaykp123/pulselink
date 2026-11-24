@@ -115,12 +115,16 @@ export default function AnalyticsCharts({
       }
     });
 
-    // If backend already returned full pre-filled sequence matching active range, return it directly
-    if (
-      (activeRange === '24h' && timeline.length >= 24) ||
-      (activeRange === '7d' && timeline.length >= 7) ||
-      (activeRange === '30d' && timeline.length >= 30)
-    ) {
+    // Verify that timeline strictly matches the active range format (hourly vs daily)
+    // before reusing, preventing cross-range stale data flashes
+    const firstBucket = timeline.length > 0 ? String(timeline[0].time_bucket || '') : '';
+    const isHourlyData = firstBucket.includes(' ') || firstBucket.includes(':');
+    const matchesActiveRange =
+      (activeRange === '24h' && isHourlyData && timeline.length >= 24) ||
+      (activeRange === '7d' && !isHourlyData && timeline.length >= 7) ||
+      (activeRange === '30d' && !isHourlyData && timeline.length >= 30);
+
+    if (matchesActiveRange) {
       return timeline;
     }
 
@@ -203,13 +207,19 @@ export default function AnalyticsCharts({
             });
           }
         } else {
-          const parts = formatted.split('-');
+          const datePart = formatted.includes(' ') ? formatted.split(' ')[0] : formatted;
+          const parts = datePart.split('-');
           if (parts.length === 3) {
-            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            formatted = d.toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-            });
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            const d = new Date(year, month, day);
+            if (!isNaN(d.getTime())) {
+              formatted = d.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+              });
+            }
           }
         }
       } catch {}
@@ -362,10 +372,16 @@ export default function AnalyticsCharts({
                           return parts[1] ? parts[1].slice(0, 5) : val.slice(11, 16);
                         }
                         try {
-                          const parts = val.split('-');
+                          const datePart = val.includes(' ') ? val.split(' ')[0] : val;
+                          const parts = datePart.split('-');
                           if (parts.length === 3) {
-                            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-                            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            const year = parseInt(parts[0], 10);
+                            const month = parseInt(parts[1], 10) - 1;
+                            const day = parseInt(parts[2], 10);
+                            const d = new Date(year, month, day);
+                            if (!isNaN(d.getTime())) {
+                              return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            }
                           }
                         } catch {}
                         return val.slice(5);
@@ -400,14 +416,20 @@ export default function AnalyticsCharts({
                                   });
                                 }
                               } else {
-                                const parts = rawLabel.split('-');
+                                const datePart = rawLabel.includes(' ') ? rawLabel.split(' ')[0] : rawLabel;
+                                const parts = datePart.split('-');
                                 if (parts.length === 3) {
-                                  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-                                  formattedLabel = d.toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                  });
+                                  const year = parseInt(parts[0], 10);
+                                  const month = parseInt(parts[1], 10) - 1;
+                                  const day = parseInt(parts[2], 10);
+                                  const d = new Date(year, month, day);
+                                  if (!isNaN(d.getTime())) {
+                                    formattedLabel = d.toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                    });
+                                  }
                                 }
                               }
                             } catch {}

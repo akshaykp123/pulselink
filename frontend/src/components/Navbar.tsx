@@ -52,12 +52,12 @@ export default function Navbar({
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Desktop Breadcrumb only (hidden on mobile to prevent clipped "Links" label & overflow) */}
+        {/* Desktop Dashboard Section Header */}
         <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-2 text-sm font-medium min-w-0 truncate">
-          <span className="text-[var(--text-secondary)]">Links</span>
+          <span className="text-[var(--text-secondary)]">Dashboard</span>
           <span className="text-[var(--text-tertiary)] select-none">/</span>
-          <span className="text-[var(--text-primary)] font-semibold font-mono truncate">
-            {activeCode ? `/${activeCode}` : 'All telemetry'}
+          <span className="text-[var(--text-primary)] font-semibold truncate">
+            Analytics Overview
           </span>
         </nav>
       </div>
