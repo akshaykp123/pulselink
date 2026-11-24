@@ -64,9 +64,20 @@ export default function AnalyticsSummary({
   ];
 
   return (
-    <div className="bg-[var(--surface)] rounded-[var(--radius-panel)] border border-[var(--border)] shadow-[var(--shadow-card)] grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)] overflow-hidden transition-smooth">
+    <div className="bg-[var(--surface)] rounded-[var(--radius-panel)] border border-[var(--border)] shadow-[var(--shadow-card)] grid grid-cols-2 lg:grid-cols-4 overflow-hidden transition-smooth">
       {stats.map((s, i) => (
-        <div key={i} className="px-5 py-4 sm:px-6 sm:py-5 min-w-0 flex flex-col justify-between">
+        <div
+          key={i}
+          className={`px-4 py-3.5 sm:px-6 sm:py-5 min-w-0 flex flex-col justify-between ${
+            i % 2 === 0 ? 'border-r border-[var(--border)]' : ''
+          } ${
+            i < 2 ? 'border-b border-[var(--border)] lg:border-b-0' : ''
+          } ${
+            i === 1 ? 'lg:border-r lg:border-[var(--border)]' : ''
+          } ${
+            i === 2 ? 'lg:border-r lg:border-[var(--border)]' : ''
+          }`}
+        >
           <p className="text-[12.5px] font-medium text-[var(--text-secondary)] tracking-tight truncate mb-2">
             {s.label}
           </p>

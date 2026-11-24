@@ -14,6 +14,16 @@ export interface UrlShortenerProps {
   linkClicksMap?: Record<string, number>;
   apiBase?: string;
   onCloseMobileDrawer?: () => void;
+  // Shared state & submit handler with mobile create card
+  sharedOriginalUrl?: string;
+  setSharedOriginalUrl?: (url: string) => void;
+  sharedCustomAlias?: string;
+  setSharedCustomAlias?: (alias: string) => void;
+  sharedIsShortening?: boolean;
+  sharedError?: string;
+  setSharedError?: (err: string) => void;
+  onSharedShorten?: (e: React.FormEvent<HTMLFormElement>) => void;
+  sharedCreatedUrl?: UrlData | null;
 }
 
 export default function UrlShortener({
@@ -24,18 +34,41 @@ export default function UrlShortener({
   linkClicksMap = {},
   apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:5000',
   onCloseMobileDrawer,
+  sharedOriginalUrl,
+  setSharedOriginalUrl,
+  sharedCustomAlias,
+  setSharedCustomAlias,
+  sharedIsShortening,
+  sharedError,
+  setSharedError,
+  onSharedShorten,
+  sharedCreatedUrl,
 }: UrlShortenerProps) {
-  const [originalUrl, setOriginalUrl] = useState<string>('');
-  const [customAlias, setCustomAlias] = useState<string>('');
-  const [createdUrl, setCreatedUrl] = useState<UrlData | null>(null);
-  const [isShortening, setIsShortening] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [internalOriginalUrl, setInternalOriginalUrl] = useState<string>('');
+  const [internalCustomAlias, setInternalCustomAlias] = useState<string>('');
+  const [internalCreatedUrl, setInternalCreatedUrl] = useState<UrlData | null>(null);
+  const [internalIsShortening, setInternalIsShortening] = useState<boolean>(false);
+  const [internalError, setInternalError] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [showQR, setShowQR] = useState<boolean>(false);
   const [searchFilter, setSearchFilter] = useState<string>('');
 
+  const originalUrl = sharedOriginalUrl !== undefined ? sharedOriginalUrl : internalOriginalUrl;
+  const setOriginalUrl = setSharedOriginalUrl || setInternalOriginalUrl;
+  const customAlias = sharedCustomAlias !== undefined ? sharedCustomAlias : internalCustomAlias;
+  const setCustomAlias = setSharedCustomAlias || setInternalCustomAlias;
+  const isShortening = sharedIsShortening !== undefined ? sharedIsShortening : internalIsShortening;
+  const error = sharedError !== undefined ? sharedError : internalError;
+  const setError = setSharedError || setInternalError;
+  const createdUrl = sharedCreatedUrl !== undefined ? sharedCreatedUrl : internalCreatedUrl;
+
   const handleShorten = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (onSharedShorten) {
+      onSharedShorten(e);
+      return;
+    }
+
     if (!originalUrl) return;
 
     // Client-side validation for custom alias
@@ -56,7 +89,7 @@ export default function UrlShortener({
       }
     }
 
-    setIsShortening(true);
+    setInternalIsShortening(true);
     setError('');
 
     try {
@@ -71,7 +104,7 @@ export default function UrlShortener({
         throw new Error(data.error || 'Failed to shorten');
       }
 
-      setCreatedUrl(data);
+      setInternalCreatedUrl(data);
       setOriginalUrl('');
       setCustomAlias('');
       if (onUrlCreated) onUrlCreated(data.shortCode);
@@ -82,7 +115,7 @@ export default function UrlShortener({
         setError('Failed to shorten URL');
       }
     } finally {
-      setIsShortening(false);
+      setInternalIsShortening(false);
     }
   };
 
@@ -134,8 +167,8 @@ export default function UrlShortener({
         )}
       </div>
 
-      {/* ── 2. Shorten Input Form Section ── */}
-      <div className="p-4 border-b border-[var(--border)] shrink-0 space-y-3">
+      {/* ── 2. Shorten Input Form Section (Desktop-only; on mobile shown at front of main content) ── */}
+      <div className="hidden md:block p-4 border-b border-[var(--border)] shrink-0 space-y-3">
         <form onSubmit={handleShorten} className="space-y-2.5">
           {/* Destination URL Input (White background on light, defined border) */}
           <div className="relative flex items-center">

@@ -39,21 +39,21 @@ export default function Navbar({
   }, [isDark]);
 
   return (
-    <header className="h-[72px] border-b border-[var(--border)] bg-[var(--surface)] sticky top-0 z-30 flex items-center px-6 sm:px-8 justify-between transition-smooth shrink-0">
-      {/* Left: Mobile hamburger (< 900px) + Breadcrumb "Links / <current slug>" */}
-      <div className="flex items-center gap-3 min-w-0">
+    <header className="h-[72px] border-b border-[var(--border)] bg-[var(--surface)] sticky top-0 z-30 flex items-center px-3 sm:px-8 justify-between transition-smooth shrink-0 min-w-0">
+      {/* Left: Mobile hamburger (< 900px, 40px tap target) + Desktop Breadcrumb */}
+      <div className="flex items-center gap-2.5 min-w-0">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="md:hidden p-2 rounded-[var(--radius-control)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth focus-ring cursor-pointer shrink-0"
+          className="md:hidden h-10 w-10 p-0 rounded-[var(--radius-control)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth focus-ring cursor-pointer flex items-center justify-center shrink-0"
           title="Toggle Navigation"
           aria-label="Toggle Navigation"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Breadcrumb (14px, muted secondary + primary slug) */}
-        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm font-medium min-w-0 truncate">
+        {/* Desktop Breadcrumb only (hidden on mobile to prevent clipped "Links" label & overflow) */}
+        <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-2 text-sm font-medium min-w-0 truncate">
           <span className="text-[var(--text-secondary)]">Links</span>
           <span className="text-[var(--text-tertiary)] select-none">/</span>
           <span className="text-[var(--text-primary)] font-semibold font-mono truncate">
@@ -62,15 +62,15 @@ export default function Navbar({
         </nav>
       </div>
 
-      {/* Right: Live switch, Simulate Click, Theme toggle (36px control height, 16px gaps, dividers) */}
-      <div className="flex items-center gap-4 shrink-0">
-        {/* Live switch: 36px height, visible 3:1 contrast border in off state, pulsing teal dot when on */}
+      {/* Right: Live switch, Simulate Click (icon-only on mobile), Theme toggle (40px tap targets, 8px gaps on mobile) */}
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        {/* Live switch: 40px height on mobile / 36px on desktop, visible 3:1 contrast border in off state */}
         <button
           type="button"
           role="switch"
           aria-checked={autoRefresh}
           onClick={() => setAutoRefresh(!autoRefresh)}
-          className="h-9 flex items-center gap-2.5 cursor-pointer select-none px-3 rounded-[var(--radius-control)] hover:bg-[var(--surface-raised)] transition-smooth focus-ring"
+          className="h-10 sm:h-9 px-2 sm:px-3 flex items-center gap-2 cursor-pointer select-none rounded-[var(--radius-control)] hover:bg-[var(--surface-raised)] transition-smooth focus-ring shrink-0"
           title={autoRefresh ? 'Live updates active (polling every 3s)' : 'Click to enable live polling'}
         >
           <div className="relative inline-flex items-center">
@@ -98,34 +98,34 @@ export default function Navbar({
           </div>
         </button>
 
-        {/* Thin Divider */}
-        <div className="h-5 w-px bg-[var(--border)] shrink-0" />
+        {/* Thin Divider on desktop */}
+        <div className="hidden sm:block h-5 w-px bg-[var(--border)] shrink-0" />
 
-        {/* Secondary outlined button for Simulate Click (36px height) */}
+        {/* Simulate Click (40px icon-only button on mobile, text on desktop) */}
         <button
           onClick={onSimulateClick}
           disabled={isSimulating}
-          className="flex items-center gap-2 h-9 px-3.5 rounded-[var(--radius-control)] border border-[var(--border)] bg-transparent hover:bg-[var(--surface-raised)] active:bg-[var(--surface-hover)] text-xs font-semibold text-[var(--text-primary)] transition-smooth focus-ring disabled:opacity-50 cursor-pointer shadow-xs"
+          className="h-10 w-10 sm:h-9 sm:w-auto p-0 sm:px-3.5 flex items-center justify-center gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-transparent hover:bg-[var(--surface-raised)] active:bg-[var(--surface-hover)] text-xs font-semibold text-[var(--text-primary)] transition-smooth focus-ring disabled:opacity-50 cursor-pointer shadow-xs shrink-0"
           title="Simulate redirect click event"
+          aria-label="Simulate redirect click"
         >
           {isSimulating ? (
-            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-text)]" />
+            <RefreshCw className="w-4 h-4 sm:w-3.5 sm:h-3.5 animate-spin text-[var(--accent-text)]" />
           ) : (
-            <svg className="w-3.5 h-3.5 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-[var(--text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
             </svg>
           )}
           <span className="hidden sm:inline">{isSimulating ? 'Logging…' : 'Simulate Click'}</span>
-          <span className="sm:hidden">{isSimulating ? '…' : 'Simulate'}</span>
         </button>
 
-        {/* Thin Divider */}
-        <div className="h-5 w-px bg-[var(--border)] shrink-0" />
+        {/* Thin Divider on desktop */}
+        <div className="hidden sm:block h-5 w-px bg-[var(--border)] shrink-0" />
 
-        {/* Light / Dark Mode Toggle (36px height) */}
+        {/* Light / Dark Mode Toggle (40px tap target on mobile, 36px on desktop) */}
         <button
           onClick={() => setIsDark(!isDark)}
-          className="h-9 w-9 rounded-[var(--radius-control)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth focus-ring cursor-pointer shadow-xs"
+          className="h-10 w-10 sm:h-9 sm:w-9 rounded-[var(--radius-control)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-smooth focus-ring cursor-pointer shadow-xs shrink-0"
           title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
           aria-label="Toggle theme"
         >
