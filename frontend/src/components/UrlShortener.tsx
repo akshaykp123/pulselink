@@ -37,6 +37,25 @@ export default function UrlShortener({
   const handleShorten = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!originalUrl) return;
+
+    // Client-side validation for custom alias
+    const trimmedAlias = customAlias.trim();
+    if (trimmedAlias) {
+      if (trimmedAlias.length < 3 || trimmedAlias.length > 16) {
+        setError('Custom alias must be between 3 and 16 characters');
+        return;
+      }
+      if (!/^[a-zA-Z0-9_-]+$/.test(trimmedAlias)) {
+        setError('Only letters, numbers, hyphens (-), and underscores (_) are allowed');
+        return;
+      }
+      const RESERVED_ALIASES = ['api', 'health', 'admin', 'login', 'docs', 'favicon', 'robots', 'sitemap', 'static', 'assets', 'dashboard'];
+      if (RESERVED_ALIASES.includes(trimmedAlias.toLowerCase())) {
+        setError(`'${trimmedAlias}' is a reserved system keyword. Please choose another.`);
+        return;
+      }
+    }
+
     setIsShortening(true);
     setError('');
 
@@ -44,7 +63,7 @@ export default function UrlShortener({
       const res = await fetch(`${apiBase}/api/urls`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ originalUrl, customAlias: customAlias.trim() || undefined }),
+        body: JSON.stringify({ originalUrl, customAlias: trimmedAlias || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -126,21 +145,28 @@ export default function UrlShortener({
               required
               placeholder="Paste long URL to shorten…"
               value={originalUrl}
-              onChange={(e) => setOriginalUrl(e.target.value)}
+              onChange={(e) => {
+                setOriginalUrl(e.target.value);
+                if (error) setError('');
+              }}
               className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-[var(--radius-control)] pl-8 pr-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--input-placeholder)] focus:outline-none focus-ring transition-smooth shadow-2xs"
             />
           </div>
 
-          {/* Custom Slug with prefix */}
-          <div className="flex items-center rounded-[var(--radius-control)] bg-[var(--input-bg)] border border-[var(--input-border)] px-3 py-1.5 text-xs font-mono shadow-2xs">
+          {/* Custom Slug with prefix (3-16 characters) */}
+          <div className="flex items-center rounded-[var(--radius-control)] bg-[var(--input-bg)] border border-[var(--input-border)] px-3 py-1.5 text-xs font-mono shadow-2xs focus-within:border-[var(--accent-border)] transition-colors">
             <span className="text-[var(--text-tertiary)] select-none shrink-0 font-medium">
               slug:
             </span>
             <input
               type="text"
-              placeholder="custom-alias"
+              placeholder="alias (3-16 chars)"
+              maxLength={16}
               value={customAlias}
-              onChange={(e) => setCustomAlias(e.target.value)}
+              onChange={(e) => {
+                setCustomAlias(e.target.value);
+                if (error) setError('');
+              }}
               className="w-full bg-transparent pl-1.5 text-xs font-mono text-[var(--text-primary)] placeholder:text-[var(--input-placeholder)] focus:outline-none"
             />
           </div>
@@ -194,11 +220,25 @@ export default function UrlShortener({
           </div>
         )}
 
-        {/* Error notification */}
+        {/* Polished Error Notification with full text wrap & dismiss button */}
         {error && (
-          <div className="flex items-center gap-1.5 text-[11.5px] text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1.5 rounded-[var(--radius-control)] border border-rose-500/20 font-medium">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            <span className="truncate">{error}</span>
+          <div
+            role="alert"
+            className="flex items-start justify-between gap-2.5 text-xs text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/25 rounded-[var(--radius-control)] p-2.5 animate-in fade-in slide-in-from-top-1 duration-150 shadow-2xs"
+          >
+            <div className="flex items-start gap-2 min-w-0 flex-1">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+              <span className="leading-snug break-words font-medium">{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setError('')}
+              className="p-0.5 rounded text-rose-500/70 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0 mt-0.5"
+              title="Dismiss error"
+              aria-label="Dismiss error"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
       </div>

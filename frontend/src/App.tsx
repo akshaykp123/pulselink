@@ -3,7 +3,7 @@ import Navbar from './components/Navbar';
 import UrlShortener from './components/UrlShortener';
 import AnalyticsSummary from './components/AnalyticsSummary';
 import AnalyticsCharts from './components/AnalyticsCharts';
-import { ExternalLink, RefreshCw, Trash2, Copy, Check, MoreHorizontal } from 'lucide-react';
+import { ExternalLink, RefreshCw, Trash2, Copy, Check, MoreHorizontal, AlertCircle, X } from 'lucide-react';
 import type { AnalyticsResponse } from './types/analytics';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
@@ -429,9 +429,24 @@ export default function App() {
             )}
 
             {error && (
-              <p className="text-xs text-rose-500 bg-rose-500/10 border border-rose-500/20 rounded-[var(--radius-control)] px-3.5 py-2.5">
-                {error}
-              </p>
+              <div
+                role="alert"
+                className="flex items-start justify-between gap-2.5 text-xs text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/25 rounded-[var(--radius-control)] p-3 animate-in fade-in duration-150 shadow-2xs"
+              >
+                <div className="flex items-start gap-2 min-w-0 flex-1">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+                  <span className="leading-relaxed font-medium break-words">{error}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setError('')}
+                  className="p-1 rounded text-rose-500/70 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0"
+                  title="Dismiss error"
+                  aria-label="Dismiss error"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
 
             {/* Skeleton placeholder while initial loading */}

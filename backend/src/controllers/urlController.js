@@ -5,6 +5,24 @@ import { encodeBase62 } from '../utils/base62.js';
 const CACHE_TTL_SECONDS = 86400; // 24h
 const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
 
+// Reserved system keywords that cannot be used as short codes or custom aliases
+const RESERVED_ALIASES = new Set([
+  'api',
+  'health',
+  'admin',
+  'login',
+  'docs',
+  'favicon',
+  'favicon.ico',
+  'robots',
+  'robots.txt',
+  'sitemap',
+  'sitemap.xml',
+  'static',
+  'assets',
+  'dashboard',
+]);
+
 // Create short URL (supports custom alias or auto-generated Base62 slug)
 export async function shortenUrl(req, res) {
   try {
@@ -18,10 +36,33 @@ export async function shortenUrl(req, res) {
     }
 
     // Handle custom alias
-    if (customAlias) {
+    if (customAlias !== undefined && customAlias !== null && String(customAlias).trim() !== '') {
+      const cleanAlias = String(customAlias).trim();
+
+      // Enforce 3 to 16 characters
+      if (cleanAlias.length < 3 || cleanAlias.length > 16) {
+        return res.status(400).json({
+          error: 'Custom alias must be between 3 and 16 characters',
+        });
+      }
+
+      // Enforce URL-safe characters: alphanumeric, hyphens, and underscores
+      if (!/^[a-zA-Z0-9_-]+$/.test(cleanAlias)) {
+        return res.status(400).json({
+          error: 'Custom alias can only contain letters, numbers, hyphens (-), and underscores (_)',
+        });
+      }
+
+      // Prevent collisions with reserved system endpoints
+      if (RESERVED_ALIASES.has(cleanAlias.toLowerCase())) {
+        return res.status(400).json({
+          error: `'${cleanAlias}' is a reserved system keyword. Please choose another alias.`,
+        });
+      }
+
       const existing = await pool.query(
         'SELECT id FROM urls WHERE custom_alias = $1 OR short_code = $1',
-        [customAlias]
+        [cleanAlias]
       );
       if (existing.rows.length > 0) {
         return res.status(409).json({ error: 'Custom alias is already taken' });
@@ -31,7 +72,7 @@ export async function shortenUrl(req, res) {
         `INSERT INTO urls (short_code, original_url, custom_alias)
          VALUES ($1, $2, $1)
          RETURNING id, short_code, original_url, created_at`,
-        [customAlias, originalUrl]
+        [cleanAlias, originalUrl]
       );
       const newUrl = insertResult.rows[0];
 
