@@ -6,6 +6,11 @@ import { telemetryQueue } from '../queues/telemetryQueue.js';
 
 const CACHE_TTL_SECONDS = 86400; // 24 hours
 
+// Automated link-preview crawlers, social bots, and search indexers
+// These bots must receive the 302 redirect for previews to work,
+// but should NOT be counted in click telemetry analytics.
+const BOT_USER_AGENT_REGEX = /bot|crawler|spider|crawling|twitterbot|facebookexternalhit|linkedinbot|whatsapp|telegrambot|slackbot|discordbot|applebot|bingbot|googlebot|pinterest|skypeuripreview/i;
+
 export async function handleRedirect(req, res) {
   const startTime = performance.now();
   const { code } = req.params;
@@ -79,17 +84,21 @@ export async function handleRedirect(req, res) {
       req.headers['purpose'] === 'prefetch' ||
       req.headers['sec-purpose'] === 'prefetch';
 
+    // Detect automated preview crawlers (e.g. Twitterbot, WhatsApp, Facebook, LinkedIn)
+    const userAgent = req.headers['user-agent'] || '';
+    const isBot = BOT_USER_AGENT_REGEX.test(userAgent);
+
     // Debounce rapid duplicate clicks within 2 seconds using atomic Redis lock
-    const debounceKey = `debounce:${code}:${clientIp}:${req.headers['user-agent'] || ''}`;
+    const debounceKey = `debounce:${code}:${clientIp}:${userAgent}`;
     const isFreshClick = await redis.set(debounceKey, '1', 'EX', 2, 'NX');
 
-    if (!isPrefetch && isFreshClick) {
+    if (!isPrefetch && !isBot && isFreshClick) {
       // Enqueue click processing asynchronously so redirect isn't blocked
       telemetryQueue.add('process-click', {
         urlId: urlData.id,
         ip: clientIp,
         visitorId,
-        userAgent: req.headers['user-agent'] || '',
+        userAgent,
         referer: req.headers['referer'] || req.headers['referrer'] || 'Direct',
       }).catch((err) => console.error('Failed to enqueue click telemetry:', err));
 
