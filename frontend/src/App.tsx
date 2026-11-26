@@ -275,7 +275,7 @@ export default function App() {
     return () => clearInterval(iv);
   }, [autoRefresh, activeCode, timeRange]);
 
-  // Simulate a redirect click to test the pipeline
+  
   const handleSimulateClick = async () => {
     setIsSimulating(true);
     try {
